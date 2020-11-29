@@ -43,15 +43,17 @@ int main(int argc, char *argv[])
 		throw std::exception();
 	}
 
-	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/standardShader.vert", "../src/standardShader.frag");
-	std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/basicColor.vert", "../src/basicColor.frag");
+	SDL_GL_SetSwapInterval(0);
+
+	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/basicColor.vert", "../src/basicColor.frag");
+	//std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/basicColor.vert", "../src/basicColor.frag");
 	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/lightShader.vert", "../src/lightShader.frag");
 
 	//std::shared_ptr<Texture> diffuseTexture = std::make_shared<Texture>("../assets/medea_diffuse.png");
 	//std::shared_ptr<Texture> specularTexture = std::make_shared<Texture>("../assets/medea_specular.png");
 
 	//std::shared_ptr<Entity> curuthers = std::make_shared<Entity>("../assets/medea.obj");
-	Model ourModel("../assets/medea/passive_marker_man.fbx");
+	Model ourModel("../assets/room/sofa.fbx");
 
 
 
@@ -60,7 +62,7 @@ int main(int argc, char *argv[])
 
 	//cube->modelMatrix = glm::translate(cube->modelMatrix, glm::vec3(1, 1, -3));
 
-	glm::vec3 lightPos(1.2f, 10.0f, 2.0f);
+	glm::vec3 lightPos(0.0f, 3.0f, 6.0f);
 	//lamp->modelMatrix = glm::translate(lamp->modelMatrix, lightPos);
 	//lamp->modelMatrix = glm::scale(lamp->modelMatrix, glm::vec3(0.2f));
 
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
 
 
 	bool quit = false;
-	float rotation = 0.0f;
+	float translation = 0.0f;
 	bool enableCull = true;
 	bool enableBlend = true;
 
@@ -120,94 +122,108 @@ int main(int argc, char *argv[])
 
 		}
 		//time calculations
-		time->updateTime(SDL_GetTicks());
-		time->DisplayFPSinWindowTitle(window);
+		Time::Update();
 
-		//window resizing calculationg
-		int width = 0;
-		int height = 0;
-		SDL_GetWindowSize(window, &width, &height);
-		glViewport(0, 0, width, height);
-
-		//camera updates
-		cam1->ProcessKeyboardInput();
-		cam1->ProcessZoom();
-		cam1->ProcessWindowResizing(width, height);
-
-		//rotation = 90.0f * time->getDeltaTime();
-
-		
-
-
-
-		glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		//stdShader->Use();
-		
-		//stdShader->setVec3("light.position", lightPos);
-		//stdShader->setVec3("viewPos", cam1->getPosition());
-
-		//// light properties
-		//stdShader->setVec3("light.ambient", 0.3f, 0.3f, 0.3f);
-		//stdShader->setVec3("light.diffuse", 0.6f, 0.6f, 0.6f);
-		//stdShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-
-		//// material properties
-		//stdShader->setFloat("material.shininess", 64.0f);
-		//stdShader->setViewMatrix(*cam1, GL_TRUE);
-		//stdShader->setMat4("u_Model", modelM);
-
-		////glActiveTexture(GL_TEXTURE0);
-		////glBindTexture(GL_TEXTURE_2D, diffuseTexture->m_id);
-		////glActiveTexture(GL_TEXTURE1);
-		////glBindTexture(GL_TEXTURE_2D, specularTexture->m_id);
-
-		//stdShader->RenderObject(*curuthers);
-
-		basicColorShader->Use();
-		glEnable(GL_DEPTH_TEST);
-		basicColorShader->setViewMatrix(*cam1, GL_TRUE);
-		// render the loaded model
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
-		basicColorShader->setMat4("u_Model", model);
-		ourModel.Draw(*basicColorShader);
-
-
-
-		if (enableCull)
+		if (Time::LimitFPS(144.0f))
 		{
-			glEnable(GL_CULL_FACE);
+			Time::DisplayFPSinWindowTitle(window);
+
+			//window resizing calculationg
+			int width = 0;
+			int height = 0;
+			SDL_GetWindowSize(window, &width, &height);
+			glViewport(0, 0, width, height);
+
+
+
+			//camera updates
+			cam1->ProcessKeyboardInput();
+			cam1->ProcessZoom();
+			cam1->ProcessWindowResizing(width, height);
+
+			float speed = 0.001f;
+			float range = 10.0f;
+			translation = glm::sin(SDL_GetTicks()*speed)*range; //oscillate
+			lightPos.x = translation;
+
+
+
+
+			glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glEnable(GL_DEPTH_TEST);
+
+			stdShader->Use();
+
+			stdShader->setVec3("light.position", lightPos);
+			stdShader->setVec3("viewPos", cam1->getPosition());
+
+			// light properties
+			stdShader->setVec3("light.ambient", glm::vec3(0.2f));
+			stdShader->setVec3("light.diffuse", glm::vec3(0.6f));
+			stdShader->setVec3("light.specular", glm::vec3(0.9f));
+
+			//// material properties
+			stdShader->setFloat("material.shininess", 8.0f);
+			stdShader->setViewMatrix(*cam1, GL_TRUE);
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+			model = glm::scale(model, glm::vec3(1.0f));	// it's a bit too big for our scene, so scale it down
+			model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			stdShader->setMat4("u_Model", model);
+			ourModel.Draw(*stdShader);
+			stdShader->StopUsing();
+
+			//stdShader->RenderObject(*curuthers);
+
+			//basicColorShader->Use();
+			//glEnable(GL_DEPTH_TEST);
+			//basicColorShader->setViewMatrix(*cam1, GL_TRUE);
+			//// render the loaded model
+			//glm::mat4 model = glm::mat4(1.0f);
+			//model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+			//model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
+			//basicColorShader->setMat4("u_Model", model);
+			//ourModel.Draw(*basicColorShader);
+
+
+
+			if (enableCull)
+			{
+				glEnable(GL_CULL_FACE);
+			}
+
+			if (enableBlend)
+			{
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+
+
+
+			glDisable(GL_CULL_FACE);
+			//stdShader->RenderObject(*cube);
+
+			//basicColorShader->StopUsing();
+
+			lampShader->Use();
+			lampShader->setViewMatrix(*cam1, GL_TRUE);
+			glm::mat4 lampModel = glm::mat4{ 1.0f };
+			lampModel = glm::translate(lampModel, lightPos);
+			lamp->modelMatrix = lampModel;
+			lampShader->RenderObject(*lamp);
+			lampShader->StopUsing();
+
+
+			glDisable(GL_BLEND);
+			glDisable(GL_DEPTH_TEST);
+
+			glBindVertexArray(0);
+			glUseProgram(0);
+			
+			Time::Reset();
+			SDL_GL_SwapWindow(window);
 		}
-
-		if (enableBlend)
-		{
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		}
-
-
-
-		glDisable(GL_CULL_FACE);
-		//stdShader->RenderObject(*cube);
-
-		basicColorShader->StopUsing();
-
-		lampShader->Use();
-		lampShader->setViewMatrix(*cam1, GL_TRUE);
-		lampShader->RenderObject(*lamp);
-		lampShader->StopUsing();
-
-
-		glDisable(GL_BLEND);
-		glDisable(GL_DEPTH_TEST);
-
-		glBindVertexArray(0);
-		glUseProgram(0);
-
-		SDL_GL_SwapWindow(window);
 	}
 
 	SDL_DestroyWindow(window);

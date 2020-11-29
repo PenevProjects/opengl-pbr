@@ -1,38 +1,48 @@
 #include "Time.h"
 #include <sstream>
+#include <iostream>
 
-Time::Time() : 
-	fpsTimer(0),
-	fps10Ticks(0)
+Time::Time()
 {}
 Time::~Time() 
 {}
 
-float Time::m_DeltaTime = 0.1f;
-int Time::m_LastTime = 0;
-float Time::m_Fps = 0;
-int Time::m_Now = 0;
+
+Uint32 Time::m_lastTick = 0;
+float Time::m_deltaTime = 0.1f;
+Uint32 Time::m_deltaTicks = 0;
+float Time::m_fps = 0;
+int Time::fpsTimer = 0;
+int Time::fps5Ticks = 0;
 
 
-void Time::updateTime(int _currentTime)
+void Time::Reset()
 {
-	m_Now = _currentTime;
-	m_DeltaTime = (m_Now - m_LastTime) / 1000.0f;
-	m_Fps = 1.0 / m_DeltaTime;
-	m_LastTime = m_Now;
+	m_lastTick = SDL_GetTicks();
+	m_deltaTicks = 0;
+	m_deltaTime = 0;
+}
+void Time::Update()
+{
+	m_deltaTicks = SDL_GetTicks() - m_lastTick;
+	m_deltaTime = m_deltaTicks / 1000.0f;
+}
+
+bool Time::LimitFPS(float _fps)
+{
+	if (_fps != m_fps)
+	{
+		m_fps = _fps;
+	}
+	if (m_deltaTime >= 1.0f / _fps) {	
+		return true;
+	}
+	return false;
 }
 
 void Time::DisplayFPSinWindowTitle(SDL_Window* _window)
 {
-	fpsTimer++;
-	fps10Ticks += 1.0 / m_DeltaTime;
-	if (fpsTimer > 9)
-	{
-		fps10Ticks /= 10;
-		std::stringstream x;
-		x << "OPENGL, FPS: " << fps10Ticks;
-		SDL_SetWindowTitle(_window, x.str().c_str());
-		fpsTimer = 0;
-		fps10Ticks = 0;
-	}
+	std::stringstream ss;
+	ss << "OPENGL, FPS: " << 1.0f/((SDL_GetTicks() - m_lastTick)/1000.0f);
+	SDL_SetWindowTitle(_window, ss.str().c_str() );
 }

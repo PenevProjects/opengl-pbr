@@ -3,25 +3,31 @@
 
 #include <SDL2/SDL.h>
 
+
+
 class Time
 {
 private:
-	float static m_DeltaTime;
-	int static m_LastTime;
-	int static m_Now;
-	float static m_Fps;
-	int fpsTimer;
-	int fps10Ticks;
+	static Uint32 m_lastTick;
+	static Uint32 m_deltaTicks;
+	static float m_deltaTime;
+	static float m_fps;
+	static int fpsTimer;
+	static int fps5Ticks;
 public:
 	Time();
 	~Time();
-	float static getDeltaTime() { return m_DeltaTime; }
-	float static getFps() { return m_Fps; }
-	void updateTime(int _currentTime);
+	static float GetDeltaTime() { return m_deltaTime; }
+	static float GetFps() { return m_fps; }
+	static void setFps(float _fps) { m_fps = _fps; }
+	static float GetCurrentTime() { return SDL_GetTicks(); }
+	static void Update();
+	static void Reset();
+	static bool LimitFPS(float _fps=m_fps);
 	/*****
 	* Displays FPS over 10 ticks
 	*****/
-	void DisplayFPSinWindowTitle(SDL_Window* _window);
+	static void DisplayFPSinWindowTitle(SDL_Window* _window);
 };
 
 
