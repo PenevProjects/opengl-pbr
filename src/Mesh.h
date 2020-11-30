@@ -17,11 +17,11 @@ struct Vertex
 
 struct Texture {
 	unsigned int id;
-	std::string type;
+	std::string typeName;
 	std::string path; 
 };
 
-struct Material {
+struct Colors {
 	glm::vec3 diffuse;
 	glm::vec3 specular;
 	glm::vec3 ambient;
@@ -30,16 +30,24 @@ struct Material {
 
 class Mesh {
 public:
-	std::vector<Vertex> vertices;
-	std::vector<unsigned int> indices;
-	std::vector<Texture> textures;
-	Material material;
+	std::vector<Vertex> m_vertices;
+	std::vector<unsigned int> m_indices;
+	std::vector<Texture> m_textures;
+	Colors m_colors;
 	
-	Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, std::vector<Texture> _textures, Material _material);
-	void Draw(Shader &shader);
+	Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, std::vector<Texture> _textures, Colors _material);
+	~Mesh()
+	{
+		glDeleteVertexArrays(1, &m_vao);
+		glDeleteVertexArrays(1, &m_vbo);
+		glDeleteVertexArrays(1, &m_ebo);
+	}
+	Mesh& operator=(const Mesh&) = delete;
+	Mesh(const Mesh&) = delete;
 
+	void Render(Shader &_shader);
 private:
-	unsigned int VAO, VBO, EBO;
+	unsigned int m_vao, m_vbo, m_ebo;
 
 	void setupMesh();
 };

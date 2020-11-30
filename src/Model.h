@@ -17,25 +17,27 @@ class Model
 public:
 	Model(char *_path)
 	{
-		importModel(_path);
+		ImportModel(_path);
 	}
-	void Draw(Shader &shader)
+	void RenderMeshes(Shader &_shader)
 	{
-		for (unsigned int i = 0; i < meshes.size(); i++)
+		for (auto& mesh : m_meshes)
 		{
-			meshes[i].Draw(shader);
+			mesh.Render(_shader);
 		}
 	}
+	void AddTexture(std::string _path, std::string _typeName);
+	std::vector<Texture> GetLoadedTextures() { return m_texturesLoaded; }
 private:
 	// model data
-	std::vector<Mesh> meshes;
-	std::vector<Texture> textures_loaded;
-	std::string directory;
+	std::vector<Mesh> m_meshes;
+	std::vector<Texture> m_texturesLoaded;
+	std::string m_directory;
 
-	void importModel(std::string _path);
-	void processNode(aiNode *_node, const aiScene *_scene);
-	Mesh processMesh(aiMesh *_mesh, const aiScene *_scene);
-	std::vector<Texture> loadMaterialTextures(const aiScene* _scene, aiMaterial *_mat, aiTextureType _type, std::string _typeName);
-	unsigned int TextureFromFile(const char *_path, const std::string &_directory, bool _gamma=false);
-	unsigned int TextureFromEmbedded(const aiTexture* texture);
+	void ImportModel(std::string _path);
+	void ProcessNode(aiNode* _node, const aiScene* _scene);
+	Mesh ProcessMesh(aiMesh* _mesh, const aiScene* _scene);
+	std::vector<Texture> LoadMaterialTextures(const aiScene* _scene, aiMaterial* _mat, aiTextureType _type, std::string _typeName);
+	unsigned int TextureFromFile(std::string _file, bool _gamma=false);
+	unsigned int TextureFromEmbedded(const aiTexture* _texture);
 };

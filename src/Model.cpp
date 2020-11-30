@@ -5,7 +5,7 @@
 #include "stb_image.h"
 
 
-void Model::importModel(std::string path)
+void Model::ImportModel(std::string path)
 {
 	Assimp::Importer import;
 	const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
@@ -15,28 +15,28 @@ void Model::importModel(std::string path)
 		std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
 		return;
 	}
-	directory = path.substr(0, path.find_last_of('/'));
-	std::cout << "Directory: " << directory << std::endl;
+	m_directory = path.substr(0, path.find_last_of('/'));
+	std::cout << "Directory: " << m_directory << std::endl;
 
-	processNode(scene->mRootNode, scene);
+	ProcessNode(scene->mRootNode, scene);
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene)
+void Model::ProcessNode(aiNode *node, const aiScene *scene)
 {
 	// process all the node's meshes (if any)
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(processMesh(mesh, scene));
+		m_meshes.push_back(ProcessMesh(mesh, scene));
 	}
 	// then do the same for each of its children
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		processNode(node->mChildren[i], scene);
+		ProcessNode(node->mChildren[i], scene);
 	}
 }
 
-Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
+Mesh Model::ProcessMesh(aiMesh *mesh, const aiScene *scene)
 {
 	// data to fill
 	std::vector<Vertex> vertices;
@@ -71,9 +71,10 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
 			vec.y = mesh->mTextureCoords[0][i].y;
 			vertex.texUVs = vec;
 		}
-		else
+		else {
+			std::cout << "No UVs detected in mesh." << std::endl;
 			vertex.texUVs = glm::vec2(0.0f, 0.0f);
-
+		}
 		vertices.push_back(vertex);
 	}
 	// now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
@@ -88,64 +89,54 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
 
 	// process materials
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-	// we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-	// as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
-	// Same applies to other texture as the following list summarizes:
-	// diffuse: texture_diffuseN
-	// specular: texture_specularN
-	// normal: texture_normalN
+
+
+	//set colors of model in case it has no textures
 	aiColor3D color(0.f, 0.f, 0.f);
-
-	Material internalMat;
+	Colors tempColors;
 	material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-	internalMat.diffuse = glm::vec3(color.r, color.b, color.g);
+	tempColors.diffuse = glm::vec3(color.r, color.b, color.g);
 
-	std::cout << "DiffR:" << color.r << " DiffB: " << color.b << "DiffG: " << color.g;
 	material->Get(AI_MATKEY_COLOR_AMBIENT, color);
-	internalMat.ambient = glm::vec3(color.r, color.b, color.g);
-
+	tempColors.ambient = glm::vec3(color.r, color.b, color.g);
 
 	material->Get(AI_MATKEY_COLOR_SPECULAR, color);
-	internalMat.specular = glm::vec3(color.r, color.b, color.g);
-
-	std::cout << "specR:" << color.r << " specB: " << color.b << "specG: " << color.g;
-
+	tempColors.specular = glm::vec3(color.r, color.b, color.g);
 	
 
 	// 1. diffuse maps
-	std::vector<Texture> diffuseMaps = loadMaterialTextures(scene, material, aiTextureType_DIFFUSE, "texture_diffuse");
+	std::vector<Texture> diffuseMaps = LoadMaterialTextures(scene, material, aiTextureType_DIFFUSE, "texture_diffuse");
 	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 	// 2. specular maps
-	std::vector<Texture> specularMaps = loadMaterialTextures(scene, material, aiTextureType_SPECULAR, "texture_specular");
+	std::vector<Texture> specularMaps = LoadMaterialTextures(scene, material, aiTextureType_SPECULAR, "texture_specular");
 	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 	// 3. normal maps
-	std::vector<Texture> normalMaps = loadMaterialTextures(scene, material, aiTextureType_HEIGHT, "texture_normal");
+	std::vector<Texture> normalMaps = LoadMaterialTextures(scene, material, aiTextureType_HEIGHT, "texture_normal");
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	// 4. height maps
-	std::vector<Texture> heightMaps = loadMaterialTextures(scene, material, aiTextureType_AMBIENT, "texture_height");
+	std::vector<Texture> heightMaps = LoadMaterialTextures(scene, material, aiTextureType_AMBIENT, "texture_height");
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-
-	std::cout << "final size of texture vec: " << textures.size();
+	std::cout << "\nfinal size of texture vec: " << textures.size();
 	// return a mesh object created from the extracted mesh data
-	return Mesh(vertices, indices, textures, internalMat);
+	return Mesh(vertices, indices, textures, tempColors);
 }
 
-std::vector<Texture> Model::loadMaterialTextures(const aiScene* scene, aiMaterial *mat, aiTextureType type, std::string typeName)
+std::vector<Texture> Model::LoadMaterialTextures(const aiScene* scene, aiMaterial *mat, aiTextureType type, std::string typeName)
 {
 	std::vector<Texture> textures;
 	
-	std::cout << "Textures of type: " << type << ":" << mat->GetTextureCount(type) << std::endl;
+	std::cout << "\nTextures of type: " << type << ":" << mat->GetTextureCount(type) << std::endl;
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 	{
 		aiString pathToTexture;
 		mat->GetTexture(type, i, &pathToTexture);
 		bool skip = false;
-		for (unsigned int j = 0; j < textures_loaded.size(); j++)
+		for (unsigned int j = 0; j < m_texturesLoaded.size(); j++)
 		{
-			if (std::strcmp(textures_loaded[j].path.data(), pathToTexture.C_Str()) == 0)
+			if (std::strcmp(m_texturesLoaded[j].path.data(), pathToTexture.C_Str()) == 0)
 			{ //if the loaded texture's path(cstring) is the same as the imported model's string(str)
-				textures.push_back(textures_loaded[j]); //push the loaded texture 
+				textures.push_back(m_texturesLoaded[j]); //push the loaded texture 
 				skip = true;
 				break;
 			}
@@ -161,27 +152,25 @@ std::vector<Texture> Model::loadMaterialTextures(const aiScene* scene, aiMateria
 				texture.id = TextureFromEmbedded(embedded);
 			}
 			else {
-				texture.id = TextureFromFile(pathToTexture.C_Str(), directory);
+				std::string filename = pathToTexture.C_Str();
+				filename = m_directory + '/' + filename;
+				texture.id = TextureFromFile(filename);
 			}
-			texture.type = typeName;
+			texture.typeName = typeName;
 			texture.path = pathToTexture.C_Str();
-			textures.push_back(texture);
-			textures_loaded.push_back(texture); // add to loaded textures
+			textures.emplace_back(texture);
 		}
 	}
 	return textures;
 }
 
-unsigned int Model::TextureFromFile(const char *path, const std::string &directory, bool gamma)
+unsigned int Model::TextureFromFile(std::string _file, bool gamma)
 {
-	std::string filename = std::string(path);
-	filename = directory + '/' + filename;
-	std::cout << filename;
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 	int width, height, nrComponents;
 	//stbi_set_flip_vertically_on_load(1);
-	unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
+	unsigned char *data = stbi_load(_file.c_str(), &width, &height, &nrComponents, 0);
 	if (data)
 	{
 		GLenum format;
@@ -206,7 +195,7 @@ unsigned int Model::TextureFromFile(const char *path, const std::string &directo
 	}
 	else
 	{
-		std::cout << "Texture failed to load at path: " << path << std::endl;
+		std::cout << "Texture failed to load at path: " << _file << std::endl;
 		stbi_image_free(data);
 	}
 	return textureID;
@@ -214,6 +203,7 @@ unsigned int Model::TextureFromFile(const char *path, const std::string &directo
 
 unsigned int Model::TextureFromEmbedded(const aiTexture* texture)
 {
+	std::cout << "\nEmbedded texture detected!\n";
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 	//stbi_set_flip_vertically_on_load(1);
@@ -256,3 +246,13 @@ unsigned int Model::TextureFromEmbedded(const aiTexture* texture)
 	}
 	return textureID;
 }
+
+//need to do for ALL MESHES push back texture
+//void Model::AddTexture(std::string _path, std::string _typeName)
+//{
+//	Texture texture;
+//	texture.id = TextureFromFile(_path);
+//	texture.typeName = _typeName;
+//	texture.path = _path;
+//	m_texturesLoaded.emplace_back(texture); // add to loaded textures
+//}

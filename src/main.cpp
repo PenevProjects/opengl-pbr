@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
 	SDL_GL_SetSwapInterval(0);
 
-	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/basicColor.vert", "../src/basicColor.frag");
+	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/standardShader.vert", "../src/standardShader.frag");
 	//std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/basicColor.vert", "../src/basicColor.frag");
 	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/lightShader.vert", "../src/lightShader.frag");
 
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	//std::shared_ptr<Texture> specularTexture = std::make_shared<Texture>("../assets/medea_specular.png");
 
 	//std::shared_ptr<Entity> curuthers = std::make_shared<Entity>("../assets/medea.obj");
-	Model ourModel("../assets/room/sofa.fbx");
+	Model ourModel("../assets/room/WoodenCabinObj.obj");
 
 
 
@@ -115,8 +115,8 @@ int main(int argc, char *argv[])
 			}
 			else if (e.type == SDL_MOUSEMOTION)
 			{
-				float deltaX = e.motion.xrel;
-				float deltaY = -e.motion.yrel;
+				float deltaX = static_cast<float>(e.motion.xrel);
+				float deltaY = static_cast<float>(-e.motion.yrel);
 				cam1->ProcessMouseInput(deltaX, deltaY);
 			}
 
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 		//time calculations
 		Time::Update();
 
-		if (Time::LimitFPS(144.0f))
+		if (Time::LimitFPS(61.0f))
 		{
 			Time::DisplayFPSinWindowTitle(window);
 
@@ -168,23 +168,12 @@ int main(int argc, char *argv[])
 			stdShader->setViewMatrix(*cam1, GL_TRUE);
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-			model = glm::scale(model, glm::vec3(1.0f));	// it's a bit too big for our scene, so scale it down
-			model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::scale(model, glm::vec3(0.1f));	// it's a bit too big for our scene, so scale it down
+			//model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			stdShader->setMat4("u_Model", model);
-			ourModel.Draw(*stdShader);
+			ourModel.RenderMeshes(*stdShader);
 			stdShader->StopUsing();
 
-			//stdShader->RenderObject(*curuthers);
-
-			//basicColorShader->Use();
-			//glEnable(GL_DEPTH_TEST);
-			//basicColorShader->setViewMatrix(*cam1, GL_TRUE);
-			//// render the loaded model
-			//glm::mat4 model = glm::mat4(1.0f);
-			//model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-			//model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
-			//basicColorShader->setMat4("u_Model", model);
-			//ourModel.Draw(*basicColorShader);
 
 
 

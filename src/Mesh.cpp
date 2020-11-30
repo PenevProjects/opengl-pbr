@@ -2,30 +2,30 @@
 #include "Shader.h"
 
 
-Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, std::vector<Texture> _textures, Material _material)
+Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, std::vector<Texture> _textures, Colors _material)
 {
-	this->vertices = _vertices;
-	this->indices = _indices;
-	this->textures = _textures;
-	this->material = _material;
+	this->m_vertices = _vertices;
+	this->m_indices = _indices;
+	this->m_textures = _textures;
+	this->m_colors = _material;
 
 	setupMesh();
 }
 
 void Mesh::setupMesh()
 {
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_vbo);
+	glGenBuffers(1, &m_ebo);
 
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindVertexArray(m_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), &m_vertices[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-		&indices[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int),
+		&m_indices[0], GL_STATIC_DRAW);
 
 	// vertex positions
 	glEnableVertexAttribArray(0);
@@ -40,36 +40,31 @@ void Mesh::setupMesh()
 	glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader &shader)
+void Mesh::Render(Shader &_shader)
 {
-	unsigned int diffuseNr = 1;
-	unsigned int specularNr = 1;
+	_shader.setBool("hasTextures", false);
 
-	shader.setVec3("material.diffuse", this->material.diffuse);
-	shader.setVec3("material.specular", this->material.specular);
-	shader.setVec3("material.ambient", this->material.ambient);
-	if (!textures.empty())
+	_shader.setVec3("material.diffuse", this->m_colors.diffuse);
+	_shader.setVec3("material.specular", this->m_colors.specular);
+	_shader.setVec3("material.ambient", this->m_colors.ambient);
+	if (!m_textures.empty())
 	{
-		std::cout << "YARRRRRRRRRRRRRRRRRR\n\n";
-		for (unsigned int i = 0; i < textures.size(); i++)
+		_shader.setBool("hasTextures", true);
+		for (unsigned int i = 0; i < m_textures.size(); i++)
 		{
 			glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
-			// retrieve texture number (the N in diffuse_textureN)
-			std::string number;
-			std::string name = textures[i].type;
-			if (name == "texture_diffuse")
-				number = std::to_string(diffuseNr++);
-			else if (name == "texture_specular")
-				number = std::to_string(specularNr++);
+			// retrieve texture name
+			std::string name = m_textures[i].typeName;
 
-			shader.setInt(("material." + name + number).c_str(), i);
-			glBindTexture(GL_TEXTURE_2D, textures.at(i).id);
+			//set the id of the sampler
+			_shader.setInt(("material." + name).c_str(), i);
+			glBindTexture(GL_TEXTURE_2D, m_textures.at(i).id);
 		}
 	}
 	glActiveTexture(GL_TEXTURE0);
 
 	// draw mesh
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(m_vao);
+	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }

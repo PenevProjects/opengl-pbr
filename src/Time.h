@@ -20,7 +20,7 @@ public:
 	static float GetDeltaTime() { return m_deltaTime; }
 	static float GetFps() { return m_fps; }
 	static void setFps(float _fps) { m_fps = _fps; }
-	static float GetCurrentTime() { return SDL_GetTicks(); }
+	static Uint32 GetCurrentTime() { return SDL_GetTicks(); }
 	static void Update();
 	static void Reset();
 	static bool LimitFPS(float _fps=m_fps);
