@@ -1,13 +1,96 @@
 #include "Mesh.h"
 #include "Shader.h"
 
+Mesh::~Mesh()
+{
+	glDeleteVertexArrays(1, &m_vao);
+	glDeleteVertexArrays(1, &m_vbo);
+	glDeleteVertexArrays(1, &m_ebo);
+}
 
-Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, std::vector<Texture> _textures, Colors _material)
+
+Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, std::vector<std::shared_ptr<Texture>> _textures, Colors _material)
 {
 	this->m_vertices = _vertices;
 	this->m_indices = _indices;
 	this->m_textures = _textures;
 	this->m_colors = _material;
+
+	setupMesh();
+}
+
+Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Texture>>& _textures)
+{
+
+	// walk through each of the mesh's vertices
+	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+	{
+		Vertex vertex;
+		glm::vec3 tempVec; // we declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
+		// positions
+		tempVec.x = mesh->mVertices[i].x;
+		tempVec.y = mesh->mVertices[i].y;
+		tempVec.z = mesh->mVertices[i].z;
+		vertex.position = tempVec;
+		// normals
+		if (mesh->HasNormals())
+		{
+			tempVec.x = mesh->mNormals[i].x;
+			tempVec.y = mesh->mNormals[i].y;
+			tempVec.z = mesh->mNormals[i].z;
+			vertex.normal = tempVec;
+		}
+		// texture coordinates
+		if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+		{
+			glm::vec2 vec;
+			// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
+			// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
+			vec.x = mesh->mTextureCoords[0][i].x;
+			vec.y = mesh->mTextureCoords[0][i].y;
+			vertex.texUVs = vec;
+		}
+		else {
+			std::cout << "No UVs detected in mesh." << std::endl;
+			vertex.texUVs = glm::vec2(0.0f, 0.0f);
+		}
+		m_vertices.push_back(vertex);
+	}
+	// now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
+	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace face = mesh->mFaces[i];
+		// retrieve all indices of the face and store them in the indices vector
+		for (unsigned int j = 0; j < face.mNumIndices; j++)
+			this->m_indices.push_back(face.mIndices[j]);
+	}
+
+
+	// process materials
+	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+
+
+	////////////////////////////////////////////////////////////////// to do
+	//set colors of model in case it has no textures
+	aiColor3D color(0.f, 0.f, 0.f);
+	Colors tempColors;
+	material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+	m_colors.diffuse = glm::vec3(color.r, color.b, color.g);
+
+	material->Get(AI_MATKEY_COLOR_AMBIENT, color);
+	m_colors.ambient = glm::vec3(color.r, color.b, color.g);
+
+	material->Get(AI_MATKEY_COLOR_SPECULAR, color);
+	m_colors.specular = glm::vec3(color.r, color.b, color.g);
+
+	////////////////////////////////TO DO
+
+	//add textures to textures vec
+	for (auto& texture : _textures)
+	{
+		m_textures.push_back(texture);
+	}
 
 	setupMesh();
 }
@@ -54,11 +137,11 @@ void Mesh::Render(Shader &_shader)
 		{
 			glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
 			// retrieve texture name
-			std::string name = m_textures[i].typeName;
+			std::string name = m_textures[i]->m_typeName;
 
 			//set the id of the sampler
 			_shader.setInt(("material." + name).c_str(), i);
-			glBindTexture(GL_TEXTURE_2D, m_textures.at(i).id);
+			glBindTexture(GL_TEXTURE_2D, m_textures[i]->m_id);
 		}
 	}
 	glActiveTexture(GL_TEXTURE0);
@@ -68,3 +151,4 @@ void Mesh::Render(Shader &_shader)
 	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
+

@@ -10,6 +10,7 @@
 #include <assimp/postprocess.h>
 
 #include "Mesh.h"
+#include "Texture.h"
 
 
 class Model
@@ -23,21 +24,20 @@ public:
 	{
 		for (auto& mesh : m_meshes)
 		{
-			mesh.Render(_shader);
+			mesh->Render(_shader);
 		}
 	}
-	void AddTexture(std::string _path, std::string _typeName);
-	std::vector<Texture> GetLoadedTextures() { return m_texturesLoaded; }
+	std::vector<std::shared_ptr<Texture>> GetLoadedTextures() { return m_texturesLoaded; }
 private:
-	// model data
-	std::vector<Mesh> m_meshes;
-	std::vector<Texture> m_texturesLoaded;
+	// model data, using shared ptrs to avoid copy ctor
+	std::vector<std::shared_ptr<Mesh>> m_meshes;
+	//using shared ptrs to avoid copy ctor
+	std::vector<std::shared_ptr<Texture>> m_texturesLoaded;
 	std::string m_directory;
 
 	void ImportModel(std::string _path);
 	void ProcessNode(aiNode* _node, const aiScene* _scene);
-	Mesh ProcessMesh(aiMesh* _mesh, const aiScene* _scene);
-	std::vector<Texture> LoadMaterialTextures(const aiScene* _scene, aiMaterial* _mat, aiTextureType _type, std::string _typeName);
-	unsigned int TextureFromFile(std::string _file, bool _gamma=false);
-	unsigned int TextureFromEmbedded(const aiTexture* _texture);
+	std::vector<std::shared_ptr<Texture>> LoadMaterialTextures(const aiScene* _scene, aiMaterial* _mat);
+	std::vector<std::shared_ptr<Texture>> LoadTexturesOfType(const aiScene* scene, aiMaterial *mat, aiTextureType type, std::string typeName);
+
 };
