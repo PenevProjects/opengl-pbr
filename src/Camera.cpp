@@ -11,19 +11,6 @@ extern const float gZOOM = 45.0f;
 int Camera::m_ScreenWidth = WINDOW_WIDTH;
 int Camera::m_ScreenHeight = WINDOW_HEIGHT;
 
-Camera::Camera() :
-	m_Yaw(gYAW),
-	m_Pitch(gPITCH),
-	m_CameraSensitivity(gSENSITIVITY),
-	m_CameraMovementSpeed(gSPEED),
-	m_FOV(gZOOM),
-	m_Position(glm::vec3(0.0f, 0.0f, 5.0f)),
-	m_Facing(glm::vec3(0.0f, 0.0f, -1.0f)),
-	m_Up(glm::vec3(0.0f, 1.0f, 0.0f)),
-	m_WorldUp(glm::vec3(0, 1.0f, 0))
-{
-}
-
 Camera::Camera(glm::vec3 _position, glm::vec3 _facing, glm::vec3 _up) :
 	m_Yaw(gYAW),
 	m_Pitch(gPITCH),

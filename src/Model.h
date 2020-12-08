@@ -5,6 +5,8 @@
 #include <glm/ext.hpp>
 #include <string>
 #include <vector>
+#include <memory>
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -15,18 +17,11 @@
 
 class Model
 {
+	//friend class Texture;
 public:
-	Model(char *_path)
-	{
-		ImportModel(_path);
-	}
-	void RenderMeshes(Shader &_shader)
-	{
-		for (auto& mesh : m_meshes)
-		{
-			mesh->Render(_shader);
-		}
-	}
+	glm::mat4 m_modelMatrix;
+	Model(const char *_path);
+	void RenderMeshes(Shader &_shader);
 	std::vector<std::shared_ptr<Texture>> GetLoadedTextures() { return m_texturesLoaded; }
 private:
 	// model data, using shared ptrs to avoid copy ctor

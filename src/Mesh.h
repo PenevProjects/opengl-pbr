@@ -5,6 +5,8 @@
 #include <glm/ext.hpp>
 #include <string>
 #include <vector>
+#include <memory>
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -28,6 +30,7 @@ struct Colors {
 };
 
 class Mesh {
+	//friend class Texture;
 public:
 	std::vector<Vertex> m_vertices;
 	std::vector<unsigned int> m_indices;

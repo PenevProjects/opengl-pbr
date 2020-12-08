@@ -16,7 +16,8 @@
 #include "Time.h"
 #include "Texture.h"
 #include "Model.h"
-
+#include "Framebuffer.h"
+#include "Skybox.h"
 
 int main(int argc, char *argv[])
 {
@@ -42,38 +43,43 @@ int main(int argc, char *argv[])
 	{
 		throw std::exception();
 	}
+	//global opengl state
+	glEnable(GL_DEPTH_TEST);
 
-	SDL_GL_SetSwapInterval(0);
+	SDL_GL_SetSwapInterval(0); //disable vsync evil
 
-	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/standardShader.vert", "../src/standardShader.frag");
-	//std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/basicColor.vert", "../src/basicColor.frag");
-	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/lightShader.vert", "../src/lightShader.frag");
-
-	//std::shared_ptr<Texture> diffuseTexture = std::make_shared<Texture>("../assets/medea_diffuse.png");
-	//std::shared_ptr<Texture> specularTexture = std::make_shared<Texture>("../assets/medea_specular.png");
-
-	//std::shared_ptr<Entity> curuthers = std::make_shared<Entity>("../assets/medea.obj");
-	Model ourModel("../assets/room/WoodenCabinObj.obj");
+	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/shaders/blinn-lighting.vert", "../src/shaders/blinn-lighting.frag");
+	std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/shaders/basic-color.vert", "../src/shaders/basic-color.frag");
+	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/shaders/pure-white.vert", "../src/shaders/pure-white.frag");
+	std::unique_ptr<Shader> framebufShader = std::make_unique<Shader>("../src/shaders/glowing-edges.vert", "../src/shaders/glowing-edges.frag");
+	std::unique_ptr<Shader> skyboxShader = std::make_unique<Shader>("../src/shaders/skybox.vert", "../src/shaders/skybox.frag");
 
 
+	std::shared_ptr<FrameBuffer> framebuf1 = std::make_shared<FrameBuffer>(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	std::shared_ptr<Model> cottage = std::make_shared<Model>("../assets/room/WoodenCabinObj.obj");
+	cottage->m_modelMatrix = glm::scale(cottage->m_modelMatrix, glm::vec3(0.1f));	// it's a bit too big for	 our scene, so scale it down
+	//std::shared_ptr<Model> townScene = std::make_shared<Model>("../assets/asd/Western Town House 1.fbx");
+	//townScene->m_modelMatrix = glm::scale(townScene->m_modelMatrix, glm::vec3(0.01f));	// it's a bit too big for our scene, so scale it down
+	//townScene->m_modelMatrix = glm::rotate(townScene->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	
+
+	std::vector<std::string> skyboxTextures{
+		"../assets/skybox/right.jpg",
+		"../assets/skybox/left.jpg",
+		"../assets/skybox/top.jpg",
+		"../assets/skybox/bottom.jpg",
+		"../assets/skybox/front.jpg",
+		"../assets/skybox/back.jpg"
+	};
+	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>(skyboxTextures);
 
 
 	std::shared_ptr<Entity> lamp = std::make_shared<Entity>("../assets/cube.obj");
 
-	//cube->modelMatrix = glm::translate(cube->modelMatrix, glm::vec3(1, 1, -3));
 
 	glm::vec3 lightPos(0.0f, 3.0f, 6.0f);
-	//lamp->modelMatrix = glm::translate(lamp->modelMatrix, lightPos);
-	//lamp->modelMatrix = glm::scale(lamp->modelMatrix, glm::vec3(0.2f));
-
-	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>();
-
-
-	//TIME
-	std::unique_ptr<Time> time = std::make_unique<Time>();
-
-
-
+	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 15.0f));
 
 	bool quit = false;
 	float translation = 0.0f;
@@ -81,8 +87,35 @@ int main(int argc, char *argv[])
 	bool enableBlend = true;
 
 	double lastTime = 0.0;
-	glm::mat4 modelM(1.0f);
 
+	//FRAMEBUFFERS///////////////////////////////////////////
+	framebufShader->Use();
+	framebufShader->setInt("screenTexture", 0);
+	framebufShader->setFloat("screenWidth", WINDOW_WIDTH);
+	framebufShader->setFloat("screenHeight", WINDOW_HEIGHT);
+	framebufShader->StopUsing();
+
+	skyboxShader->Use();
+	skyboxShader->setInt("u_Skybox", 0);
+	skyboxShader->StopUsing();
+
+	stdShader->Use();
+
+	// light properties
+	stdShader->setVec3("light.ambient", glm::vec3(0.3f));
+	stdShader->setVec3("light.diffuse", glm::vec3(0.7f));
+	stdShader->setVec3("light.specular", glm::vec3(0.9f));
+
+	stdShader->setFloat("light.constant", 1.0f);
+	stdShader->setFloat("light.linear", 0.014f);
+	stdShader->setFloat("light.quadratic", 0.0007f);
+
+	//// material properties
+	stdShader->setFloat("material.shininess", 8.0f);
+
+	stdShader->StopUsing();
+
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	while (!quit)
 	{
@@ -141,14 +174,10 @@ int main(int argc, char *argv[])
 			cam1->ProcessZoom();
 			cam1->ProcessWindowResizing(width, height);
 
-			float speed = 0.001f;
-			float range = 10.0f;
-			translation = glm::sin(SDL_GetTicks()*speed)*range; //oscillate
-			lightPos.x = translation;
+	
 
 
-
-
+			//glBindFramebuffer(GL_FRAMEBUFFER, framebuf1->GetID());
 			glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glEnable(GL_DEPTH_TEST);
@@ -156,26 +185,14 @@ int main(int argc, char *argv[])
 			stdShader->Use();
 
 			stdShader->setVec3("light.position", lightPos);
+			//rendering properties
 			stdShader->setVec3("viewPos", cam1->getPosition());
+			stdShader->setViewAndProjectionMatrix(*cam1, true);
+			stdShader->setMat4("u_Model", cottage->m_modelMatrix);
 
-			// light properties
-			stdShader->setVec3("light.ambient", glm::vec3(0.2f));
-			stdShader->setVec3("light.diffuse", glm::vec3(0.6f));
-			stdShader->setVec3("light.specular", glm::vec3(0.9f));
 
-			//// material properties
-			stdShader->setFloat("material.shininess", 8.0f);
-			stdShader->setViewMatrix(*cam1, GL_TRUE);
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-			model = glm::scale(model, glm::vec3(0.1f));	// it's a bit too big for our scene, so scale it down
-			//model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			stdShader->setMat4("u_Model", model);
-			ourModel.RenderMeshes(*stdShader);
+			cottage->RenderMeshes(*stdShader);
 			stdShader->StopUsing();
-
-
-
 
 			if (enableCull)
 			{
@@ -188,27 +205,41 @@ int main(int argc, char *argv[])
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			}
 
-
-
-			glDisable(GL_CULL_FACE);
 			//stdShader->RenderObject(*cube);
 
 			//basicColorShader->StopUsing();
 
 			lampShader->Use();
-			lampShader->setViewMatrix(*cam1, GL_TRUE);
-			glm::mat4 lampModel = glm::mat4{ 1.0f };
-			lampModel = glm::translate(lampModel, lightPos);
-			lamp->modelMatrix = lampModel;
+
+			float speed = 0.001f;
+			float range = 10.0f;
+			translation = glm::sin(SDL_GetTicks()*speed)*range; //oscillate
+			lightPos.x = translation;
+
+			lampShader->setViewAndProjectionMatrix(*cam1, true);
+			lamp->modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos);
 			lampShader->RenderObject(*lamp);
 			lampShader->StopUsing();
 
+			
+			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			//framebufShader->Use();
+			//framebuf1->DrawRenderTexture();
+			//framebufShader->StopUsing();
 
-			glDisable(GL_BLEND);
-			glDisable(GL_DEPTH_TEST);
+
+			///////////////////////SKYBOX//////////////////////
+			glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+			skyboxShader->Use();
+			// remove translation from the view matrix
+			skyboxShader->setMat4("u_View", glm::mat4(glm::mat3(cam1->generateViewMatrix())));
+			skyboxShader->setMat4("u_Projection", cam1->generateProjMatrixPersp());
+			skybox->DrawSkybox();
+			glDepthFunc(GL_LESS); // set depth function back to default
+			////////////////////////////////////////////////////
+
 
 			glBindVertexArray(0);
-			glUseProgram(0);
 			
 			Time::Reset();
 			SDL_GL_SwapWindow(window);

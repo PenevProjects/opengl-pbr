@@ -36,7 +36,7 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
 	}
 	catch (std::ifstream::failure e)
 	{
-		std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+		std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << vertexPath << std::endl;
 	}
 	const char* vShaderCode = vertexCode.c_str();
 	const char* fShaderCode = fragmentCode.c_str();
@@ -99,9 +99,10 @@ void Shader::Use()
 }
 void Shader::StopUsing()
 {
+	glBindVertexArray(0);
 	glUseProgram(0);
 }
-void Shader::setViewMatrix(const Camera& _cam, GLboolean perspective3D)
+void Shader::setViewAndProjectionMatrix(const Camera& _cam, bool perspective3D)
 {
 	setMat4("u_View", _cam.generateViewMatrix());
 	if (perspective3D)

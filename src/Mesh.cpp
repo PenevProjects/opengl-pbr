@@ -51,7 +51,6 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Textu
 			vertex.texUVs = vec;
 		}
 		else {
-			std::cout << "No UVs detected in mesh." << std::endl;
 			vertex.texUVs = glm::vec2(0.0f, 0.0f);
 		}
 		m_vertices.push_back(vertex);

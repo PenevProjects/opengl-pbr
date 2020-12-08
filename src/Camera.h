@@ -5,6 +5,7 @@
 #include <glm/ext.hpp>
 #include <iostream>
 #include <SDL2/SDL.h>
+#include <memory>
 
 
 #define WINDOW_WIDTH 800
@@ -41,9 +42,10 @@ public:
 	float m_CameraMovementSpeed;
 	float m_CameraSensitivity;
 	///Creates Camera object with default values
-	Camera();
+	Camera(glm::vec3 _position = glm::vec3(0.0f, 0.0f, 5.0f),
+		glm::vec3 _facing = glm::vec3(0.0f, 0.0f, -1.0f),
+		glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f));
 	///Creates Camera object with set position, facing direction, and up direction.
-	Camera(glm::vec3 position, glm::vec3 facing, glm::vec3 up);
 	void ProcessKeyboardInput();
 	void ProcessMouseInput(float xoffset, float yoffset);
 	void ProcessWindowResizing(int _screenWidth, int _screenHeight);

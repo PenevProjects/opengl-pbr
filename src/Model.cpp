@@ -2,20 +2,33 @@
 #include <iostream>
 
 
+Model::Model(const char *_path) :
+	m_modelMatrix({ 1.0f })
+{
+	ImportModel(_path);
+}
+
+void Model::RenderMeshes(Shader &_shader)
+{
+	for (auto& mesh : m_meshes)
+	{
+		mesh->Render(_shader);
+	}
+}
 
 
-void Model::ImportModel(std::string path)
+void Model::ImportModel(std::string _path)
 {
 	Assimp::Importer import;
-	const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+	const aiScene *scene = import.ReadFile(_path, aiProcess_Triangulate | aiProcess_FlipUVs);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
 		std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
 		return;
 	}
-	m_directory = path.substr(0, path.find_last_of('/'));
-	std::cout << "Directory: " << m_directory << std::endl;
+	m_directory = _path.substr(0, _path.find_last_of('/'));
+	std::cout << "Model loaded:" << _path << std::endl;
 
 	ProcessNode(scene->mRootNode, scene);
 }
@@ -30,7 +43,7 @@ void Model::ProcessNode(aiNode *_node, const aiScene *_scene)
 		std::vector<std::shared_ptr<Texture>> meshTextures = LoadMaterialTextures(_scene, material);
 
 		std::shared_ptr<Mesh> b = std::make_shared<Mesh>(mesh, _scene, meshTextures);
-		std::cout << "hit";
+		std::cout << "loaded mesh.\n";
 		m_meshes.push_back(b);
 	}
 	// then do the same for each of its children
@@ -113,14 +126,3 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 	}
 	return textures;
 }
-
-
-//need to do for ALL MESHES push back texture
-//void Model::AddTexture(std::string _path, std::string _typeName)
-//{
-//	Texture texture;
-//	texture.id = TextureFromFile(_path);
-//	texture.typeName = _typeName;
-//	texture.path = _path;
-//	m_texturesLoaded.emplace_back(texture); // add to loaded textures
-//}
