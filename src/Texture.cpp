@@ -20,15 +20,22 @@ Texture::Texture(std::string _path, std::string _typeName, bool _gamma)
 	if (data)
 	{
 		GLenum format;
+		GLenum internalFormat;
 		if (components == 1)
 			format = GL_RED;
-		else if (components == 3)
+		else if (components == 3) 
+		{
+			internalFormat = _gamma ? GL_SRGB : GL_RGB;
 			format = GL_RGB;
-		else if (components == 4)
+		}
+		else if (components == 4) 
+		{
+			internalFormat = _gamma ? GL_SRGB_ALPHA : GL_RGB;
 			format = GL_RGBA;
+		}
 
 		glBindTexture(GL_TEXTURE_2D, m_id);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 
 		//gl parameters
 		glGenerateMipmap(GL_TEXTURE_2D);
@@ -49,7 +56,7 @@ Texture::Texture(std::string _path, std::string _typeName, bool _gamma)
 
 Texture::Texture(const aiTexture* texture)
 {
-	std::cout << "\nEmbedded texture detected!\n";
+	std::cout << "\nEmbedded texture detected! Gamma correction is not supported for embedded textures! Thanks Assimp. \n";
 	glGenTextures(1, &m_id);
 	//stbi_set_flip_vertically_on_load(1);
 	unsigned char *data = nullptr;
@@ -104,7 +111,7 @@ unsigned int Texture::LoadCubemap(std::vector<std::string> _textureFaces)
 		if (data)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+				0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
 			);
 			stbi_image_free(data);
 		}

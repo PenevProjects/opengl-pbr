@@ -112,11 +112,13 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 				m_texturesLoaded.push_back(texture);
 			}
 			else {
+				//if the texture is diffuse, apply gamma correction
+				bool gammaCorrection = (_type == aiTextureType_DIFFUSE) ? true : false;
 				//process path
 				std::string filename = pathToTexture.C_Str();
 				filename = m_directory + '/' + filename;
 				//construct from file path
-				std::shared_ptr<Texture> texture = std::make_shared<Texture>(filename, _typeName);
+				std::shared_ptr<Texture> texture = std::make_shared<Texture>(filename, _typeName, gammaCorrection);
 				//push to local texture vector(of uniform types)
 				textures.push_back(texture);
 				//push to member texture vector(of various types)

@@ -9,9 +9,9 @@ Time::~Time()
 
 
 Uint32 Time::m_lastTick = 0;
-float Time::m_deltaTime = 0.1f;
+double Time::m_deltaTime = 0.1f;
 Uint32 Time::m_deltaTicks = 0;
-float Time::m_fps = 0;
+double Time::m_fps = 0;
 int Time::fpsTimer = 0;
 int Time::fps5Ticks = 0;
 
@@ -28,7 +28,7 @@ void Time::Update()
 	m_deltaTime = m_deltaTicks / 1000.0f;
 }
 
-bool Time::LimitFPS(float _fps)
+bool Time::LimitFPS(double _fps)
 {
 	if (_fps != m_fps)
 	{

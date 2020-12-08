@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 		//time calculations
 		Time::Update();
 
-		if (Time::LimitFPS(61.0f))
+		if (Time::LimitFPS(60.0f))
 		{
 			Time::DisplayFPSinWindowTitle(window);
 
@@ -181,6 +181,7 @@ int main(int argc, char *argv[])
 			glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glEnable(GL_DEPTH_TEST);
+
 
 			stdShader->Use();
 

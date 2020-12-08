@@ -4,7 +4,7 @@
 extern const float gYAW = -90.0f;
 extern const float gPITCH = 0.0f;
 extern const float gSPEED = 10.0f;
-extern const float gSENSITIVITY = 10.0f;
+extern const float gSENSITIVITY = 0.1f;
 extern const float gZOOM = 45.0f;
 
 
@@ -36,19 +36,19 @@ void Camera::ProcessKeyboardInput()
 	const Uint8* key = SDL_GetKeyboardState(NULL);
 	if (key[SDL_SCANCODE_W]) //moving left
 	{
-		m_Position += m_CameraMovementSpeed * m_Facing * Time::GetDeltaTime();
+		m_Position += m_CameraMovementSpeed * m_Facing * (float)Time::GetDeltaTime();
 	}
 	if (key[SDL_SCANCODE_S])
 	{
-		m_Position -= m_CameraMovementSpeed * m_Facing * Time::GetDeltaTime();
+		m_Position -= m_CameraMovementSpeed * m_Facing * (float)Time::GetDeltaTime();
 	}
 	if (key[SDL_SCANCODE_D])
 	{
-		m_Position += glm::normalize(glm::cross(m_Facing, m_Up)) * m_CameraMovementSpeed * Time::GetDeltaTime();
+		m_Position += glm::normalize(glm::cross(m_Facing, m_Up)) * m_CameraMovementSpeed * (float)Time::GetDeltaTime();
 	}
 	if (key[SDL_SCANCODE_A])
 	{
-		m_Position -= glm::normalize(glm::cross(m_Facing, m_Up)) * m_CameraMovementSpeed * Time::GetDeltaTime();
+		m_Position -= glm::normalize(glm::cross(m_Facing, m_Up)) * m_CameraMovementSpeed * (float)Time::GetDeltaTime();
 	}
 }
 
@@ -59,8 +59,8 @@ void Camera::ProcessKeyboardInput()
 */
 void Camera::ProcessMouseInput(float xoffset, float yoffset)
 {
-	m_Yaw += (xoffset * m_CameraSensitivity * Time::GetDeltaTime());
-	m_Pitch += (yoffset * m_CameraSensitivity * Time::GetDeltaTime());
+	m_Yaw += (xoffset * m_CameraSensitivity ); //* Time::GetDeltaTime()
+	m_Pitch += (yoffset * m_CameraSensitivity ); //* Time::GetDeltaTime()
 
 	if (m_Pitch > 89.0f)
 	{
