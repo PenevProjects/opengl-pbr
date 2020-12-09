@@ -1,4 +1,5 @@
 #include "Model.h"
+#include "Shader.h"
 #include <iostream>
 
 
@@ -8,8 +9,9 @@ Model::Model(const char *_path) :
 	ImportModel(_path);
 }
 
-void Model::RenderMeshes(Shader &_shader)
+void Model::RenderMeshes(const Shader &_shader)
 {
+	_shader.setMat4("u_Model", this->m_modelMatrix);
 	for (auto& mesh : m_meshes)
 	{
 		mesh->Render(_shader);
@@ -68,19 +70,33 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiScene*
 	// 4. height maps
 	std::vector<std::shared_ptr<Texture>> heightMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_AMBIENT, "texture_height");
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+	// 5. metallic maps
+	std::vector<std::shared_ptr<Texture>> metallicMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_METALNESS, "texture_metallic");
+	textures.insert(textures.end(), metallicMaps.begin(), metallicMaps.end());
+	// 6. roughness maps
+	std::vector<std::shared_ptr<Texture>> roughnessMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_DIFFUSE_ROUGHNESS, "texture_roughness");
+	textures.insert(textures.end(), roughnessMaps.begin(), roughnessMaps.end());
+	// 7. ambient occlusion maps
+	std::vector<std::shared_ptr<Texture>> aoMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_AMBIENT_OCCLUSION, "texture_ao");
+	textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
+	// 8. base color maps
+	std::vector<std::shared_ptr<Texture>> bcMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_BASE_COLOR, "texture_diffuse");
+	textures.insert(textures.end(), bcMaps.begin(), bcMaps.end());
+	// 9. normal PBR maps
+	std::vector<std::shared_ptr<Texture>> normalPbrMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_NORMAL_CAMERA, "texture_normal");
+	textures.insert(textures.end(), normalPbrMaps.begin(), normalPbrMaps.end());
 
-	// 5. to add more if supported
-
+	
 	return textures;
 }
 
 std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* scene, aiMaterial *mat, aiTextureType _type, std::string _typeName)
 {
 	std::vector<std::shared_ptr<Texture>> textures;
-
+	std::cout << "\nTexture type: " << _typeName << " count:" << mat->GetTextureCount(_type);
 	if (mat->GetTextureCount(_type) > 1)
 	{
-		std::cout << "\nMODEL::LoadTexturesOfType::MORE THAN ONE " << _typeName << " DETECTED FOR A MESH!!! THIS IS NOT CURRENTLY SUPPORTED.\n";
+		std::cout << "\nMODEL::LoadTexturesOfType::WARNING: More than one texture of type " << _typeName << " detected! This is not currently supported.\n";
 	}
 	for (unsigned int i = 0; i < mat->GetTextureCount(_type); i++)
 	{
@@ -100,12 +116,12 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 		if (!loaded)
 		{   // if texture hasn't been loaded already, load it
 
-			//check if there is an embedded texture
+			//load an embedded texture
 			const aiTexture* embedded = scene->GetEmbeddedTexture(pathToTexture.C_Str());
-
+			bool gammaCorrection = (_type == aiTextureType_DIFFUSE || _type == aiTextureType_BASE_COLOR) ? true : false;
 			if (embedded) {
 				//construct from embedded
-				std::shared_ptr<Texture> texture = std::make_shared<Texture>(embedded);
+				std::shared_ptr<Texture> texture = std::make_shared<Texture>(embedded, _typeName, gammaCorrection);
 				//push to local texture vector(of uniform types)
 				textures.push_back(texture);
 				//push to member texture vector(of various types)
@@ -113,7 +129,7 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 			}
 			else {
 				//if the texture is diffuse, apply gamma correction
-				bool gammaCorrection = (_type == aiTextureType_DIFFUSE) ? true : false;
+
 				//process path
 				std::string filename = pathToTexture.C_Str();
 				filename = m_directory + '/' + filename;

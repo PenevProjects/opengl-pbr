@@ -27,7 +27,7 @@ struct Texture {
 	///Texture from path.
 	Texture(std::string _path, std::string _typeName, bool _gamma=false);
 	///Texture from embedded texture.
-	Texture(const aiTexture* _texture);
+	Texture(const aiTexture* _texture, std::string _typeName, bool _gamma = false);
 	///Calls glDestroy on the current texture.
 	~Texture();
 	//deleting the copy ctors because we need a custom destructor.

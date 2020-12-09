@@ -35,18 +35,27 @@ int main(int argc, char *argv[])
 	//LOCK IN MOUSE SO U CAN LOOK AROUND
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
+
 	if (!SDL_GL_CreateContext(window))
 	{
 		throw std::exception();
 	}
+
+
+	SDL_GL_SetSwapInterval(0); //disable vsync evil
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+
 	if (glewInit() != GLEW_OK)
 	{
 		throw std::exception();
 	}
 	//global opengl state
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
 
-	SDL_GL_SetSwapInterval(0); //disable vsync evil
+
 
 	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/shaders/blinn-lighting.vert", "../src/shaders/blinn-lighting.frag");
 	std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/shaders/basic-color.vert", "../src/shaders/basic-color.frag");
@@ -57,12 +66,27 @@ int main(int argc, char *argv[])
 
 	std::shared_ptr<FrameBuffer> framebuf1 = std::make_shared<FrameBuffer>(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-	std::shared_ptr<Model> cottage = std::make_shared<Model>("../assets/room/WoodenCabinObj.obj");
-	cottage->m_modelMatrix = glm::scale(cottage->m_modelMatrix, glm::vec3(0.1f));	// it's a bit too big for	 our scene, so scale it down
-	//std::shared_ptr<Model> townScene = std::make_shared<Model>("../assets/asd/Western Town House 1.fbx");
-	//townScene->m_modelMatrix = glm::scale(townScene->m_modelMatrix, glm::vec3(0.01f));	// it's a bit too big for our scene, so scale it down
-	//townScene->m_modelMatrix = glm::rotate(townScene->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	
+	//floor normal shader
+	std::shared_ptr<Model> floor = std::make_shared<Model>("../assets/skybox/untitled.obj");
+	floor->m_modelMatrix = glm::translate(floor->m_modelMatrix, glm::vec3(0.0f, -3.0f, 0.0f));
+
+	//tv pbr
+	std::shared_ptr<Model> tv = std::make_shared<Model>("../assets/tv/tv.fbx");
+	tv->m_modelMatrix = glm::scale(tv->m_modelMatrix, glm::vec3(0.3f));	
+	tv->m_modelMatrix = glm::rotate(tv->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	tv->m_modelMatrix = glm::translate(tv->m_modelMatrix, glm::vec3(-40.0f, 0.0f, -10.0f));
+
+	//sword pbr
+	std::shared_ptr<Model> sword = std::make_shared<Model>("../assets/sword/sword.fbx");
+	sword->m_modelMatrix = glm::scale(sword->m_modelMatrix, glm::vec3(10.0f));
+	sword->m_modelMatrix = glm::rotate(sword->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+	//mask pbr
+	std::shared_ptr<Model> oniMask = std::make_shared<Model>("../assets/oni/onito.fbx");
+	oniMask->m_modelMatrix = glm::scale(oniMask->m_modelMatrix, glm::vec3(1.0f));
+	oniMask->m_modelMatrix = glm::translate(oniMask->m_modelMatrix, glm::vec3(15.0f, -5.0f, 0.0f));
+
+
 
 	std::vector<std::string> skyboxTextures{
 		"../assets/skybox/right.jpg",
@@ -78,7 +102,7 @@ int main(int argc, char *argv[])
 	std::shared_ptr<Entity> lamp = std::make_shared<Entity>("../assets/cube.obj");
 
 
-	glm::vec3 lightPos(0.0f, 3.0f, 6.0f);
+	glm::vec3 lightPos(0.0f, 3.0f, 10.0f);
 	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 15.0f));
 
 	bool quit = false;
@@ -94,17 +118,18 @@ int main(int argc, char *argv[])
 	framebufShader->setFloat("screenWidth", WINDOW_WIDTH);
 	framebufShader->setFloat("screenHeight", WINDOW_HEIGHT);
 	framebufShader->StopUsing();
-
+	//SKYBOX////////////////////////////////////////////////
 	skyboxShader->Use();
 	skyboxShader->setInt("u_Skybox", 0);
 	skyboxShader->StopUsing();
 
+	//MODEL SHADER/////////////////////////////////////////
 	stdShader->Use();
 
 	// light properties
-	stdShader->setVec3("light.ambient", glm::vec3(0.3f));
-	stdShader->setVec3("light.diffuse", glm::vec3(0.7f));
-	stdShader->setVec3("light.specular", glm::vec3(0.9f));
+	stdShader->setVec3("light.ambient", glm::vec3(2.0f));
+	stdShader->setVec3("light.diffuse", glm::vec3(1.5f));
+	stdShader->setVec3("light.specular", glm::vec3(1.9f));
 
 	stdShader->setFloat("light.constant", 1.0f);
 	stdShader->setFloat("light.linear", 0.014f);
@@ -189,10 +214,18 @@ int main(int argc, char *argv[])
 			//rendering properties
 			stdShader->setVec3("viewPos", cam1->getPosition());
 			stdShader->setViewAndProjectionMatrix(*cam1, true);
-			stdShader->setMat4("u_Model", cottage->m_modelMatrix);
+
+			//render sword
+			sword->RenderMeshes(*stdShader);
+
+			//render tv
+			tv->RenderMeshes(*stdShader);
+
+			//render oni mask
+			oniMask->RenderMeshes(*stdShader);
 
 
-			cottage->RenderMeshes(*stdShader);
+			floor->RenderMeshes(*stdShader);
 			stdShader->StopUsing();
 
 			if (enableCull)

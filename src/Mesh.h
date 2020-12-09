@@ -20,6 +20,8 @@ struct Vertex
 	glm::vec3 position;
 	glm::vec3 normal;
 	glm::vec2 texUVs;
+	glm::vec3 tangents;
+	glm::vec3 bitangents;
 };
 
 struct Colors {
@@ -44,8 +46,10 @@ public:
 	Mesh& operator=(const Mesh&) = delete;
 	Mesh(const Mesh&) = delete;
 	
-
-	void Render(Shader &_shader);
+	/**
+	* @param _shader A shader object passed by const-ref, because the object needs to be only inspected.
+	*/
+	void Render(const Shader &_shader);
 
 private:
 	unsigned int m_vao, m_vbo, m_ebo;

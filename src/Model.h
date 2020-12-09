@@ -14,6 +14,8 @@
 #include "Mesh.h"
 #include "Texture.h"
 
+class Shader;
+
 
 class Model
 {
@@ -21,7 +23,7 @@ class Model
 public:
 	glm::mat4 m_modelMatrix;
 	Model(const char *_path);
-	void RenderMeshes(Shader &_shader);
+	void RenderMeshes(const Shader &_shader);
 	std::vector<std::shared_ptr<Texture>> GetLoadedTextures() { return m_texturesLoaded; }
 private:
 	// model data, using shared ptrs to avoid copy ctor

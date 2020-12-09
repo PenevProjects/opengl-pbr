@@ -45,10 +45,10 @@ void main()
     // ambient
     vec3 ambient;
 	if (hasTextures) {
-		ambient = light.ambient * material.ambient * texture(material.texture_diffuse, v_TexCoords).rgb * attenuation;
+		ambient = light.ambient * texture(material.texture_diffuse, v_TexCoords).rgb;
 	}
 	else {
-		ambient = light.ambient * material.ambient * attenuation;
+		ambient = light.ambient * material.ambient;
 	}
   	
     // diffuse 
@@ -56,20 +56,20 @@ void main()
     float diff = max(dot(N, L), 0.0);
 	vec3 diffuse;
 	if (hasTextures) {
-		diffuse = light.diffuse * diff * material.diffuse * texture(material.texture_diffuse, v_TexCoords).rgb * attenuation;  
+		diffuse = light.diffuse * diff * texture(material.texture_diffuse, v_TexCoords).rgb;  
 	}
 	else {
-		diffuse = light.diffuse * diff * material.diffuse * attenuation;
+		diffuse = light.diffuse * diff * material.diffuse;
 	}
     // specular
 	float spec = pow(max(dot(E, R), 0.0), material.shininess);
 	vec3 specular;
 	if (hasTextures) {
-		specular = light.specular * spec * material.specular * texture(material.texture_specular, v_TexCoords).rgb * attenuation;
+		specular = light.specular * spec * texture(material.texture_specular, v_TexCoords).rgb;
 	}
 	else {
-		specular = light.specular * spec * material.specular * attenuation;
+		specular = light.specular * spec * material.specular;
 	}
     vec3 result = ambient + diffuse + specular;
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result * attenuation, 1.0);
 } 

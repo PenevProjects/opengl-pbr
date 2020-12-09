@@ -53,6 +53,18 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Textu
 		else {
 			vertex.texUVs = glm::vec2(0.0f, 0.0f);
 		}
+		if (mesh->HasTangentsAndBitangents())
+		{
+			tempVec.x = mesh->mTangents[i].x;
+			tempVec.y = mesh->mTangents[i].y;
+			tempVec.z = mesh->mTangents[i].z;
+			vertex.tangents = tempVec;
+
+			tempVec.x = mesh->mBitangents[i].x;
+			tempVec.y = mesh->mBitangents[i].y;
+			tempVec.z = mesh->mBitangents[i].z;
+			vertex.bitangents = tempVec;
+		}
 		m_vertices.push_back(vertex);
 	}
 	// now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
@@ -122,7 +134,7 @@ void Mesh::setupMesh()
 	glBindVertexArray(0);
 }
 
-void Mesh::Render(Shader &_shader)
+void Mesh::Render(const Shader &_shader)
 {
 	_shader.setBool("hasTextures", false);
 
