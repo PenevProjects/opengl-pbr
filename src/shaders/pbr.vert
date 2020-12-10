@@ -1,22 +1,39 @@
 #version 330 core
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec2 aTexCoords;
+layout (location = 3) in vec3 aTangent;
+layout (location = 4) in vec3 aBitangent;
 
-layout (location = 0) in vec3 a_Position;
-layout (location = 1) in vec2 a_TexCoords;
-layout (location = 2) in vec3 a_Normal;
+out VS_OUT {
+    vec3 FragPos;
+    vec2 TexCoords;
+    vec3 TangentLightPos;
+    vec3 TangentViewPos;
+    vec3 TangentFragPos;
+} vs_out;
 
 uniform mat4 u_Projection;
-uniform mat4 u_Model;
 uniform mat4 u_View;
+uniform mat4 u_Model;
 
-out vec2 v_TexCoords;
-out vec3 v_Normal;
-out vec3 v_FragPos;
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
 void main()
 {
-	v_FragPos = vec3(u_Model * vec4(a_Position, 1.0));
-	mat4 modelView = u_View * u_Model;
-	v_Normal = mat3(transpose(inverse(u_Model))) * a_Normal;
+    vs_out.FragPos = vec3(u_Model * vec4(aPos, 1.0));   
+    vs_out.TexCoords = aTexCoords;
+    
+    mat3 normalMatrix = transpose(inverse(mat3(u_Model)));
+    vec3 T = normalize(normalMatrix * aTangent);
+	vec3 B = normalize(normalMatrix * aBitangent);
+    vec3 N = normalize(normalMatrix * aNormal);
+    T = normalize(T - dot(T, N) * N);
 
-	gl_Position = u_Projection * u_View * vec4(v_FragPos, 1.0);
+    mat3 TBNinverse = transpose(mat3(T, B, N));   //we need the inverse so that we can transform from world to tangent space  
+    vs_out.TangentLightPos = TBNinverse * lightPos;
+    vs_out.TangentViewPos  = TBNinverse * viewPos;
+    vs_out.TangentFragPos  = TBNinverse * vs_out.FragPos;
+    gl_Position = u_Projection * u_View * u_Model * vec4(aPos, 1.0);
 }

@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 
 
 	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/shaders/blinn-lighting.vert", "../src/shaders/blinn-lighting.frag");
+	std::unique_ptr<Shader> pbrShader = std::make_unique<Shader>("../src/shaders/pbr.vert", "../src/shaders/pbr.frag");
 	std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/shaders/basic-color.vert", "../src/shaders/basic-color.frag");
 	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/shaders/pure-white.vert", "../src/shaders/pure-white.frag");
 	std::unique_ptr<Shader> framebufShader = std::make_unique<Shader>("../src/shaders/glowing-edges.vert", "../src/shaders/glowing-edges.frag");
@@ -135,7 +136,8 @@ int main(int argc, char *argv[])
 	stdShader->setFloat("light.linear", 0.014f);
 	stdShader->setFloat("light.quadratic", 0.0007f);
 
-	//// material properties
+
+	// material properties
 	stdShader->setFloat("material.shininess", 8.0f);
 
 	stdShader->StopUsing();
@@ -208,25 +210,31 @@ int main(int argc, char *argv[])
 			glEnable(GL_DEPTH_TEST);
 
 
-			stdShader->Use();
-
-			stdShader->setVec3("light.position", lightPos);
+			pbrShader->Use();
+			pbrShader->setVec3("lightPos", lightPos);
 			//rendering properties
-			stdShader->setVec3("viewPos", cam1->getPosition());
-			stdShader->setViewAndProjectionMatrix(*cam1, true);
+			pbrShader->setVec3("viewPos", cam1->getPosition());
+			pbrShader->setViewAndProjectionMatrix(*cam1, true);
 
 			//render sword
-			sword->RenderMeshes(*stdShader);
+			sword->RenderMeshes(*pbrShader);
 
 			//render tv
-			tv->RenderMeshes(*stdShader);
+			tv->RenderMeshes(*pbrShader);
 
 			//render oni mask
-			oniMask->RenderMeshes(*stdShader);
+			oniMask->RenderMeshes(*pbrShader);
 
+			floor->RenderMeshes(*pbrShader);
+			
+			pbrShader->StopUsing();
 
-			floor->RenderMeshes(*stdShader);
-			stdShader->StopUsing();
+			//stdShader->Use();
+			//stdShader->setVec3("lightPos", lightPos);
+			//stdShader->setVec3("viewPos", cam1->getPosition());
+			//stdShader->setViewAndProjectionMatrix(*cam1, true);
+			//floor->RenderMeshes(*stdShader);
+			//stdShader->StopUsing();
 
 			if (enableCull)
 			{

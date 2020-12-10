@@ -70,6 +70,12 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiScene*
 	// 4. height maps
 	std::vector<std::shared_ptr<Texture>> heightMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_AMBIENT, "texture_height");
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+	// 8. base color maps
+	std::vector<std::shared_ptr<Texture>> bcMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_BASE_COLOR, "texture_diffuse");
+	textures.insert(textures.end(), bcMaps.begin(), bcMaps.end());
+	// 9. normal PBR maps
+	std::vector<std::shared_ptr<Texture>> normalPbrMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_NORMAL_CAMERA, "texture_normal");
+	textures.insert(textures.end(), normalPbrMaps.begin(), normalPbrMaps.end());
 	// 5. metallic maps
 	std::vector<std::shared_ptr<Texture>> metallicMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_METALNESS, "texture_metallic");
 	textures.insert(textures.end(), metallicMaps.begin(), metallicMaps.end());
@@ -79,12 +85,7 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiScene*
 	// 7. ambient occlusion maps
 	std::vector<std::shared_ptr<Texture>> aoMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_AMBIENT_OCCLUSION, "texture_ao");
 	textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
-	// 8. base color maps
-	std::vector<std::shared_ptr<Texture>> bcMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_BASE_COLOR, "texture_diffuse");
-	textures.insert(textures.end(), bcMaps.begin(), bcMaps.end());
-	// 9. normal PBR maps
-	std::vector<std::shared_ptr<Texture>> normalPbrMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_NORMAL_CAMERA, "texture_normal");
-	textures.insert(textures.end(), normalPbrMaps.begin(), normalPbrMaps.end());
+
 
 	
 	return textures;
