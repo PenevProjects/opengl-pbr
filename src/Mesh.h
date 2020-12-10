@@ -54,5 +54,5 @@ public:
 private:
 	unsigned int m_vao, m_vbo, m_ebo;
 
-	void setupMesh();
+	void setupMeshVAO();
 };

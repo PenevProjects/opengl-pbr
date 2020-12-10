@@ -16,7 +16,7 @@ Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices, st
 	this->m_textures = _textures;
 	this->m_colors = _material;
 
-	setupMesh();
+	setupMeshVAO();
 }
 
 Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Texture>>& _textures)
@@ -103,10 +103,10 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Textu
 		m_textures.push_back(texture);
 	}
 
-	setupMesh();
+	setupMeshVAO();
 }
 
-void Mesh::setupMesh()
+void Mesh::setupMeshVAO()
 {
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_vbo);
@@ -130,6 +130,11 @@ void Mesh::setupMesh()
 	// vertex texture coords
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texUVs));
+	// vertex tangents
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangents));
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangents));
 
 	glBindVertexArray(0);
 }
