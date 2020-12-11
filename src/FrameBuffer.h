@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
+class Shader;
+
 class FrameBuffer {
 public:
 	/** \brief Framebuffer ctor with default dimensions of 800x600.
@@ -17,9 +19,9 @@ public:
 	FrameBuffer(const FrameBuffer&) = delete;
 	FrameBuffer& operator=(const FrameBuffer&) = delete;
 
-	void DrawRenderTexture();
+	void DrawRenderTexture(const Shader& _shader);
 	unsigned int GetID() { return m_fbo; }
-	unsigned int GetRenderTexture() { return m_texture; }
+	unsigned int GetRenderTexture() { return m_textureId; }
 	unsigned int GetRenderBufferObject() { return m_rbo; }
 private:
 	void CreateRenderTexture(int _width, int _height);
@@ -29,5 +31,7 @@ private:
 	unsigned int m_screenQuadVAO;
 	unsigned int m_fbo;
 	unsigned int m_rbo;
-	unsigned int m_texture;
+	unsigned int m_textureId;
+	int m_width;
+	int m_height;
 };

@@ -12,13 +12,15 @@ class Skybox
 {
 	//friend class Texture;
 public:
+	Skybox();
 	Skybox(std::vector<std::string> _texturePaths);
 	~Skybox();
 	Skybox(const Skybox&) = delete;
 	Skybox& operator=(const Skybox&) = delete;
-	void DrawSkybox();
-private:
+	void DrawSkyboxCube();
 	unsigned int m_id;
+private:
+	
 	unsigned int m_vao;
 	void CreateVAO();
 };

@@ -1,11 +1,16 @@
 #version 330 core
 out vec4 FragColor;
+in vec3 WorldPos;
 
-in vec3 v_TexCoords;
-
-uniform samplerCube u_Skybox;
+uniform samplerCube environmentMap;
 
 void main()
-{    
-    FragColor = texture(u_Skybox, v_TexCoords);
+{		
+    vec3 envColor = texture(environmentMap, WorldPos).rgb;
+    
+    // HDR tonemap and gamma correct
+    envColor = envColor / (envColor + vec3(1.0));
+    envColor = pow(envColor, vec3(1.0/2.2)); 
+    
+    FragColor = vec4(envColor, 1.0);
 }

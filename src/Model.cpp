@@ -43,10 +43,9 @@ void Model::ProcessNode(aiNode *_node, const aiScene *_scene)
 		aiMesh *mesh = _scene->mMeshes[_node->mMeshes[i]];
 		aiMaterial* material = _scene->mMaterials[mesh->mMaterialIndex];
 		std::vector<std::shared_ptr<Texture>> meshTextures = LoadMaterialTextures(_scene, material);
-
-		std::shared_ptr<Mesh> b = std::make_shared<Mesh>(mesh, _scene, meshTextures);
+		std::shared_ptr<Mesh> currentMesh = std::make_shared<Mesh>(mesh, _scene, meshTextures);
 		std::cout << "loaded mesh.\n";
-		m_meshes.push_back(b);
+		m_meshes.push_back(currentMesh);
 	}
 	// then do the same for each of its children
 	for (unsigned int i = 0; i < _node->mNumChildren; i++)
@@ -129,7 +128,6 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 				m_texturesLoaded.push_back(texture);
 			}
 			else {
-				//if the texture is diffuse, apply gamma correction
 
 				//process path
 				std::string filename = pathToTexture.C_Str();

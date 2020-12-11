@@ -35,6 +35,8 @@ struct Texture {
 	Texture& operator=(const Texture&) = delete;
 
 	static unsigned int LoadCubemap(std::vector<std::string> _textureFaces);
+	static unsigned int EmptyCubemap(int _width, int _height);
+	static void LoadHDR(unsigned int &_inout, std::string _pathToHDR);
 
 
 	unsigned int m_id;

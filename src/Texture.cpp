@@ -47,14 +47,14 @@ Texture::Texture(std::string _path, std::string _typeName, bool _gamma)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-
+		stbi_image_free(data);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	else
 	{
 		std::cout << "Texture data failed to load at path: " << _path << std::endl;
 	}
-	stbi_image_free(data);
-	glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
 Texture::Texture(const aiTexture* texture, std::string _typeName, bool _gamma)
@@ -124,8 +124,7 @@ unsigned int Texture::LoadCubemap(std::vector<std::string> _textureFaces)
 		if (data)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-			);
+				0, GL_RGB16F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 			stbi_image_free(data);
 		}
 		else
@@ -139,6 +138,54 @@ unsigned int Texture::LoadCubemap(std::vector<std::string> _textureFaces)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
+
+void Texture::LoadHDR(unsigned int &_inout, std::string _pathToHDR)
+{
+	glGenTextures(1, &_inout);
+	//stbi implementation
+	stbi_set_flip_vertically_on_load(true);
+	int width, height, components;
+	float *data = stbi_loadf(_pathToHDR.c_str(), &width, &height, &components, 0);
+	if (data)
+	{
+		glBindTexture(GL_TEXTURE_2D, _inout);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Texture data failed to load at path: " << _pathToHDR << std::endl;
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+unsigned int Texture::EmptyCubemap(int _width, int _height)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+
+	for (unsigned int i = 0; i < 6; i++)
+	{
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, GL_RGB16F, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return textureID;
 }

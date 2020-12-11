@@ -155,17 +155,17 @@ void Mesh::Render(const Shader &_shader)
 			glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
 			// retrieve texture name
 			std::string name = m_textures[i]->m_typeName;
-
 			//set the id of the sampler
 			_shader.setInt(("material." + name).c_str(), i);
 			glBindTexture(GL_TEXTURE_2D, m_textures[i]->m_id);
 		}
 	}
-	glActiveTexture(GL_TEXTURE0);
-
 	// draw mesh
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+	//default
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 

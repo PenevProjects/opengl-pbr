@@ -18,6 +18,78 @@
 #include "Model.h"
 #include "Framebuffer.h"
 #include "Skybox.h"
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+void renderCube()
+{
+	// initialize (if necessary)
+	if (cubeVAO == 0)
+	{
+		float vertices[] = {
+			// back face
+			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+			 1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+			-1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+			// front face
+			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+			 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+			-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+			// left face
+			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+			-1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+			-1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+			// right face
+			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+			 1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+			 1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+			// bottom face
+			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+			 1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+			-1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+			// top face
+			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+			 1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+			 1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+			 1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+			-1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+		};
+		glGenVertexArrays(1, &cubeVAO);
+		glGenBuffers(1, &cubeVBO);
+		// fill buffer
+		glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		// link vertex attributes
+		glBindVertexArray(cubeVAO);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
+	// render Cube
+	glBindVertexArray(cubeVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+}
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +125,7 @@ int main(int argc, char *argv[])
 	}
 	//global opengl state
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL); // set depth function to less than AND equal for skybox depth trick.
 	glEnable(GL_MULTISAMPLE);
 
 
@@ -64,13 +137,15 @@ int main(int argc, char *argv[])
 	std::unique_ptr<Shader> framebufShader = std::make_unique<Shader>("../src/shaders/glowing-edges.vert", "../src/shaders/glowing-edges.frag");
 	std::unique_ptr<Shader> skyboxShader = std::make_unique<Shader>("../src/shaders/skybox.vert", "../src/shaders/skybox.frag");
 	std::unique_ptr<Shader> pbrShader = std::make_unique<Shader>("../src/shaders/pbrPractice.vert", "../src/shaders/pbrPractice.frag");
-
+	std::unique_ptr<Shader> equirectToCubemapShader = std::make_unique<Shader>("../src/shaders/HDR-skybox.vert", "../src/shaders/HDR-skybox.frag");
 
 	std::shared_ptr<FrameBuffer> framebuf1 = std::make_shared<FrameBuffer>(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	//floor normal shader
-	std::shared_ptr<Model> floor = std::make_shared<Model>("../assets/skybox/untitled.obj");
+	std::shared_ptr<Model> floor = std::make_shared<Model>("../assets/floor/floor.fbx");
 	floor->m_modelMatrix = glm::translate(floor->m_modelMatrix, glm::vec3(0.0f, -3.0f, 0.0f));
+	floor->m_modelMatrix = glm::scale(floor->m_modelMatrix, glm::vec3(50.0f, 0.0f, 50.0f));
+
 
 	//tv pbr
 	std::shared_ptr<Model> tv = std::make_shared<Model>("../assets/tv/tv.fbx");
@@ -98,7 +173,7 @@ int main(int argc, char *argv[])
 		"../assets/skybox/front.jpg",
 		"../assets/skybox/back.jpg"
 	};
-	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>(skyboxTextures);
+	std::shared_ptr<Skybox> skyboxFrom6Maps = std::make_shared<Skybox>(skyboxTextures);
 
 
 	std::shared_ptr<Entity> lamp0 = std::make_shared<Entity>("../assets/cube.obj");
@@ -130,25 +205,89 @@ int main(int argc, char *argv[])
 
 
 
+
 	pbrShader->Use();
 	for (unsigned int i = 0; i < sizeof(lightPos) / sizeof(lightPos[0]); i++)
 	{
 		pbrShader->setVec3("lightPos[" + std::to_string(i) + "]", lightPos[i]);
 		pbrShader->setVec3("lightColors[" + std::to_string(i) + "]", lightColors[i]);
 	}
+	pbrShader->StopUsing();
+	skyboxShader->Use();
+	skyboxShader->setInt("environmentMap", 0);
+	skyboxShader->StopUsing();
+
+	unsigned int captureFBO;
+	unsigned int captureRBO;
+	glGenFramebuffers(1, &captureFBO);
+	glGenRenderbuffers(1, &captureRBO);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+
+	unsigned int hdrTexture;
+	Texture::LoadHDR(hdrTexture, "../assets/Road_to_MonumentValley_Ref.hdr");
+	// pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
+	// ----------------------------------------------------------------------------------------------
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+	glm::mat4 captureViews[] =
+	{
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+	};
+
+	// pbr: convert HDR equirectangular environment map to cubemap equivalent
+	// ----------------------------------------------------------------------
+	// pbr: setup cubemap to render to and attach to framebuffer
+		// ---------------------------------------------------------
+	unsigned int envCubemap;
+	glGenTextures(1, &envCubemap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+	for (unsigned int i = 0; i < 6; ++i)
+	{
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	equirectToCubemapShader->Use();
+	equirectToCubemapShader->setInt("equirectangularMap", 0);
+	equirectToCubemapShader->setMat4("u_Projection", captureProjection);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+
+	glViewport(0, 0, 512,512); // don't forget to configure the viewport to the capture dimensions.
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	for (unsigned int i = 0; i < 6; ++i)
+	{
+		equirectToCubemapShader->setMat4("u_View", captureViews[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		renderCube();
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 
 	//FRAMEBUFFERS///////////////////////////////////////////
-	framebufShader->Use();
-	framebufShader->setInt("screenTexture", 0);
-	framebufShader->setFloat("screenWidth", WINDOW_WIDTH);
-	framebufShader->setFloat("screenHeight", WINDOW_HEIGHT);
-	framebufShader->StopUsing();
+	//framebufShader->Use();
+	//framebufShader->setInt("screenTexture", 0);
+	//framebufShader->setFloat("screenWidth", WINDOW_WIDTH);
+	//framebufShader->setFloat("screenHeight", WINDOW_HEIGHT);
+	//framebufShader->StopUsing();
 	//SKYBOX////////////////////////////////////////////////
-	skyboxShader->Use();
-	skyboxShader->setInt("u_Skybox", 0);
-	skyboxShader->StopUsing();
+
 
 	//MODEL SHADER/////////////////////////////////////////
 	stdShader->Use();
@@ -227,9 +366,9 @@ int main(int argc, char *argv[])
 
 
 			//glBindFramebuffer(GL_FRAMEBUFFER, framebuf1->GetID());
-			glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glEnable(GL_DEPTH_TEST);
+
 
 
 			pbrShader->Use();
@@ -242,34 +381,25 @@ int main(int argc, char *argv[])
 			//render tv
 			tv->RenderMeshes(*pbrShader);
 
+			floor->RenderMeshes(*pbrShader);
+
 			//render oni mask
 			oniMask->RenderMeshes(*pbrShader);
 
-			floor->RenderMeshes(*pbrShader);
 			
-			normalsShader->StopUsing();
+			
+			pbrShader->StopUsing();
 
-			//stdShader->Use();
-			//stdShader->setVec3("lightPos", lightPos);
-			//stdShader->setVec3("viewPos", cam1->getPosition());
-			//stdShader->setViewAndProjectionMatrix(*cam1, true);
-			//floor->RenderMeshes(*stdShader);
-			//stdShader->StopUsing();
+			////stdShader->Use();
+			////stdShader->setVec3("lightPos", lightPos);
+			////stdShader->setVec3("viewPos", cam1->getPosition());
+			////stdShader->setViewAndProjectionMatrix(*cam1, true);
+			////floor->RenderMeshes(*stdShader);
+			////stdShader->StopUsing();
 
-			if (enableCull)
-			{
-				glEnable(GL_CULL_FACE);
-			}
 
-			if (enableBlend)
-			{
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}
+			////stdShader->RenderObject(*cube);
 
-			//stdShader->RenderObject(*cube);
-
-			//basicColorShader->StopUsing();
 
 			lampShader->Use();
 
@@ -296,17 +426,13 @@ int main(int argc, char *argv[])
 			//framebuf1->DrawRenderTexture();
 			//framebufShader->StopUsing();
 
-
 			///////////////////////SKYBOX//////////////////////
-			glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 			skyboxShader->Use();
-			// remove translation from the view matrix
-			skyboxShader->setMat4("u_View", glm::mat4(glm::mat3(cam1->generateViewMatrix())));
-			skyboxShader->setMat4("u_Projection", cam1->generateProjMatrixPersp());
-			skybox->DrawSkybox();
-			glDepthFunc(GL_LESS); // set depth function back to default
-			////////////////////////////////////////////////////
-
+			skyboxShader->setViewAndProjectionMatrix(*cam1, true);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+			renderCube();
+			skyboxShader->StopUsing();
 
 			glBindVertexArray(0);
 			

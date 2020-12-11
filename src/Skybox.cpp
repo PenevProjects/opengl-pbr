@@ -8,6 +8,12 @@ Skybox::Skybox(std::vector<std::string> _texturePaths)
 	m_id = Texture::LoadCubemap(_texturePaths);
 	CreateVAO();
 }
+
+Skybox::Skybox()
+{
+	CreateVAO();
+}
+
 Skybox::~Skybox()
 {
 	glDeleteTextures(1, &m_id);
@@ -75,11 +81,9 @@ void Skybox::CreateVAO()
 	glDeleteBuffers(1, &skyboxVBO);
 }
 
-void Skybox::DrawSkybox()
+void Skybox::DrawSkyboxCube()
 {
 	glBindVertexArray(m_vao);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);
 }
