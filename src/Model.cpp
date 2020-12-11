@@ -71,7 +71,7 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiScene*
 	std::vector<std::shared_ptr<Texture>> heightMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_AMBIENT, "texture_height");
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 	// 8. base color maps
-	std::vector<std::shared_ptr<Texture>> bcMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_BASE_COLOR, "texture_diffuse");
+	std::vector<std::shared_ptr<Texture>> bcMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_BASE_COLOR, "texture_albedo");
 	textures.insert(textures.end(), bcMaps.begin(), bcMaps.end());
 	// 9. normal PBR maps
 	std::vector<std::shared_ptr<Texture>> normalPbrMaps = LoadTexturesOfType(_scene, _mat, aiTextureType_NORMAL_CAMERA, "texture_normal");
@@ -119,10 +119,10 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 
 			//load an embedded texture
 			const aiTexture* embedded = scene->GetEmbeddedTexture(pathToTexture.C_Str());
-			bool gammaCorrection = (_type == aiTextureType_DIFFUSE || _type == aiTextureType_BASE_COLOR) ? true : false;
+
 			if (embedded) {
 				//construct from embedded
-				std::shared_ptr<Texture> texture = std::make_shared<Texture>(embedded, _typeName, gammaCorrection);
+				std::shared_ptr<Texture> texture = std::make_shared<Texture>(embedded, _typeName);
 				//push to local texture vector(of uniform types)
 				textures.push_back(texture);
 				//push to member texture vector(of various types)
@@ -135,7 +135,7 @@ std::vector<std::shared_ptr<Texture>> Model::LoadTexturesOfType(const aiScene* s
 				std::string filename = pathToTexture.C_Str();
 				filename = m_directory + '/' + filename;
 				//construct from file path
-				std::shared_ptr<Texture> texture = std::make_shared<Texture>(filename, _typeName, gammaCorrection);
+				std::shared_ptr<Texture> texture = std::make_shared<Texture>(filename, _typeName);
 				//push to local texture vector(of uniform types)
 				textures.push_back(texture);
 				//push to member texture vector(of various types)
