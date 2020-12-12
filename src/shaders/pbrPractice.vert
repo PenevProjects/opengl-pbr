@@ -7,6 +7,7 @@ layout (location = 4) in vec3 aBitangent;
 
 out VS_OUT {
     vec3 FragPos;
+	vec3 Normal;
     vec2 TexCoords;
     vec3 TangentLightPos[4];
     vec3 TangentViewPos;
@@ -24,6 +25,7 @@ void main()
 {
     vs_out.FragPos = vec3(u_Model * vec4(aPos, 1.0));   
     vs_out.TexCoords = aTexCoords;
+	vs_out.Normal = mat3(u_Model) * aNormal;   
     
     mat3 normalMatrix = transpose(inverse(mat3(u_Model)));
     vec3 T = normalize(normalMatrix * aTangent);

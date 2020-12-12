@@ -13,7 +13,7 @@
 #include <vector>
 
 /**
-*\brief Controls texture objects.
+*\brief Controls texture objects. Needed because textures need to be glDestroyed.
 *
 *Can only be initialized through default constructor.
 *OpenGL encapsulates glTexture objects within the API. Memory management for glTextures is not controlled by the user -
@@ -24,10 +24,12 @@ struct Texture {
 	friend class Model;
 	friend class Mesh;
 
-	///Texture from path.
+	///2D Texture from path.
 	Texture(std::string _path, std::string _typeName, bool _gamma=false);
-	///Texture from embedded texture.
+	///2D Texture from embedded texture.
 	Texture(const aiTexture* _texture, std::string _typeName, bool _gamma = false);
+	///Cubemap texture, empty.
+	Texture(int _width, int _height, std::string _cube);
 	///Calls glDestroy on the current texture.
 	~Texture();
 	//deleting the copy ctors because we need a custom destructor.

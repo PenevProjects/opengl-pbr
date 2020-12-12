@@ -1,25 +1,98 @@
 #include "Skybox.h"
 #include "Texture.h"
+#include "FrameBuffer.h"
+#include "Shader.h"
 
 #include <iostream>
 
-Skybox::Skybox(std::vector<std::string> _texturePaths)
-{
-	m_id = Texture::LoadCubemap(_texturePaths);
-	CreateVAO();
-}
 
-Skybox::Skybox()
+Skybox::Skybox(std::string _pathToHDR, int _size)
 {
-	CreateVAO();
+	//setup skybox
+	CreateCubeVAO();
+	m_texture = std::make_shared<Texture>(_size, _size, "cubemap");
+
+	int irradianceSize = 32;
+	m_irradiance = std::make_shared<Texture>(irradianceSize, irradianceSize, "cubemap");
+
+
+	//setup vars
+	std::unique_ptr<Shader> equirectToCubemapShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/equirectangular-to-cubemap.frag");
+	std::unique_ptr<Shader> irradianceConvShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/cubemap-conv.frag");
+	std::unique_ptr<FrameBuffer> environmentFramebuffer = std::make_unique<FrameBuffer>(_size, _size);
+	std::shared_ptr<Texture> hdrTexture = std::make_shared<Texture>(_pathToHDR, "HDR");
+
+	// set up projection and view matrices for capturing data onto the 6 cubemap face directions
+	// ----------------------------------------------------------------------------------------------
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+	glm::mat4 captureViews[] =
+	{
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+	};
+	//set static shader uniform variables
+	equirectToCubemapShader->Use();
+	equirectToCubemapShader->setInt("equirectangularMap", 0);
+	equirectToCubemapShader->setMat4("u_Projection", captureProjection);
+
+	//convert HDR equirectangular map to cubemap
+	// ----------------------------------------------------------------------
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, hdrTexture->m_id);
+
+	// configure the viewport to the capture dimensions.
+	glViewport(0, 0, _size, _size);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
+	for (unsigned int i = 0; i < 6; ++i)
+	{ //render all 6 faces of cube going through the view matrices and store in member texture id
+		equirectToCubemapShader->setMat4("u_View", captureViews[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_texture->m_id, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		RenderCube();
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
+	// ----------------------------------------------------------------------
+
+	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
+	glBindRenderbuffer(GL_RENDERBUFFER, environmentFramebuffer->GetRenderBufferObject());
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, irradianceSize, irradianceSize);
+
+	// pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
+	// -----------------------------------------------------------------------------
+	irradianceConvShader->Use();
+	irradianceConvShader->setInt("environmentCubemap", 0);
+	irradianceConvShader->setMat4("u_Projection", captureProjection);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture->m_id);
+
+	glViewport(0, 0, irradianceSize, irradianceSize); // configure the viewport to the capture dimensions.
+	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
+	for (unsigned int i = 0; i < 6; ++i)
+	{
+		irradianceConvShader->setMat4("u_View", captureViews[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_irradiance->m_id, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		RenderCube();
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 Skybox::~Skybox()
 {
-	glDeleteTextures(1, &m_id);
+	glDeleteVertexArrays(1, &m_vao);
 }
 
-void Skybox::CreateVAO()
+void Skybox::CreateCubeVAO()
 {
 	float skyboxVertexData[] = {
 		// positions, don't need texture coordinates because cube is always at origin, position coordinates are also direction vectors(which can be used to sample the texture)         
@@ -81,7 +154,7 @@ void Skybox::CreateVAO()
 	glDeleteBuffers(1, &skyboxVBO);
 }
 
-void Skybox::DrawSkyboxCube()
+void Skybox::RenderCube()
 {
 	glBindVertexArray(m_vao);
 	glDrawArrays(GL_TRIANGLES, 0, 36);

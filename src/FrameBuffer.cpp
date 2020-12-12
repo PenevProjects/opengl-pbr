@@ -10,8 +10,8 @@ FrameBuffer::FrameBuffer(int _width, int _height) :
 	glGenFramebuffers(1, &m_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	CreateRenderQuad();
-	CreateRenderTexture(m_width, m_height);
-	CreateRenderBuffer(m_width, m_height);
+	CreateRenderTexture();
+	CreateRenderBuffer();
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -25,20 +25,20 @@ FrameBuffer::~FrameBuffer()
 	if (m_fbo) { glDeleteFramebuffers(1, &m_fbo); }
 }
 
-void FrameBuffer::CreateRenderTexture(int _width, int _height)
+void FrameBuffer::CreateRenderTexture()
 {
 	glGenTextures(1, &m_textureId);
 	glBindTexture(GL_TEXTURE_2D, m_textureId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_textureId, 0);
 }
-void FrameBuffer::CreateRenderBuffer(int _width, int _height)
+void FrameBuffer::CreateRenderBuffer()
 {
 	glGenRenderbuffers(1, &m_rbo);
 	glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, _width, _height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_width, m_height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
 }
 
@@ -77,10 +77,10 @@ void FrameBuffer::DrawRenderTexture(const Shader& _shader)
 {
 	_shader.setFloat("screenWidth", m_width);
 	_shader.setFloat("screenHeight", m_height);
+	_shader.setInt("renderTexture", 0);
 
 	glActiveTexture(GL_TEXTURE0); // activate proper texture unit before binding
 	//set the id of the sampler
-	_shader.setInt("renderTexture", this->m_textureId);
 	glBindTexture(GL_TEXTURE_2D, m_textureId);
 
 	glBindVertexArray(m_screenQuadVAO);

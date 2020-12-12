@@ -5,12 +5,14 @@ out vec4 FragColor;
 
 in VS_OUT {
     vec3 FragPos;
+	vec3 Normal;
     vec2 TexCoords;
     vec3 TangentLightPos[4];
     vec3 TangentViewPos;
     vec3 TangentFragPos;
 } fs_in;
 
+uniform samplerCube irradianceMap;
 
 struct Material {
 	vec3 ambient;
@@ -26,13 +28,30 @@ struct Material {
 uniform Material material;
 
 
-
 // lights
 uniform vec3 lightPos[4];
 uniform vec3 lightColors[4];
 uniform vec3 viewPos;
 
 const float PI = 3.14159265358979323846264338327950;
+
+
+vec3 getNormalFromMap()
+{
+    vec3 tangentNormal = texture(material.texture_normal, fs_in.TexCoords).xyz * 2.0 - 1.0;
+
+    vec3 Q1  = dFdx(fs_in.FragPos);
+    vec3 Q2  = dFdy(fs_in.FragPos);
+    vec2 st1 = dFdx(fs_in.TexCoords);
+    vec2 st2 = dFdy(fs_in.TexCoords);
+
+    vec3 N   = normalize(fs_in.Normal);
+    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+    vec3 B  = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
+}
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -81,6 +100,7 @@ void main()
 	float roughness = texture(material.texture_roughness, fs_in.TexCoords).r;
 	float metallic  = texture(material.texture_metallic, fs_in.TexCoords).r;
 	float ao        = texture(material.texture_ao, fs_in.TexCoords).r;
+	vec3 irradiance = texture(irradianceMap, fs_in.FragPos).rgb;
 
     // transform normal vector to range [-1,1]
     vec3 N = normalize(normals * 2.0 - 1.0);  //normal vector(tangent space)
@@ -122,8 +142,16 @@ void main()
 		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 	}
 
-	vec3 ambient = vec3(0.05) * albedo * ao;
-	vec3 color   = ambient + Lo; 
+	//IBL environment lighting
+    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+    
+    vec3 diffuse      = irradiance.rgb * albedo;
+    vec3 ambient = (kD * diffuse) * ao;
+	//vec3 ambient = vec3(0.05) * albedo * ao;
+	//YOU ARE TRYING TO ACCESS TEXTURE UNIT 0 FOR BOTH A 2D TEXTURE AND 3D TEXTURE AT THE SAME TIME!
+	vec3 color = texture(irradianceMap, N).rgb * normals; 
 
 	// HDR tonemapping
     color = color / (color + vec3(1.0));

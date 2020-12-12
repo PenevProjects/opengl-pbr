@@ -82,7 +82,7 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Textu
 
 
 
-	////////////////////////////////////////////////////////////////// to do
+
 	//set colors of model in case it has no textures
 	aiColor3D color(0.f, 0.f, 0.f);
 	Colors tempColors;
@@ -95,7 +95,6 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene, std::vector<std::shared_ptr<Textu
 	material->Get(AI_MATKEY_COLOR_SPECULAR, color);
 	m_colors.specular = glm::vec3(color.r, color.b, color.g);
 
-	////////////////////////////////TO DO
 
 	//add textures to textures vec
 	for (auto& texture : _textures)
@@ -165,7 +164,7 @@ void Mesh::Render(const Shader &_shader)
 	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 	//default
-	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0);
 }
 

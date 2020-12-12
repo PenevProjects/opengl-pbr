@@ -11,21 +11,26 @@ public:
 	/** \brief Framebuffer ctor with default dimensions of 800x600.
 	*
 	* Constructs with a FrameBuffer object and creates its render texture and render buffer object.
-	* @param _width Dimension of framebuffer width. Default 800.
-	* @param _height Dimension of framebuffer height. Default 600.
+	* @param _width Dimension of framebuffer width.
+	* @param _height Dimension of framebuffer height.
 	**/
-	FrameBuffer::FrameBuffer(int _width = 800, int _height = 600);
+	FrameBuffer::FrameBuffer(int _width, int _height);
 	~FrameBuffer();
 	FrameBuffer(const FrameBuffer&) = delete;
 	FrameBuffer& operator=(const FrameBuffer&) = delete;
 
+	/**\brief Function for rendering a quad with post-processing effects.
+	*
+	*Sets uniforms of "screenWidth" and "screenHeight" to member variables m_width and m_height.
+	*Renders the m_textureId applied on a screen quad.
+	*/
 	void DrawRenderTexture(const Shader& _shader);
-	unsigned int GetID() { return m_fbo; }
+	unsigned int GetFrameBufferObject() { return m_fbo; }
 	unsigned int GetRenderTexture() { return m_textureId; }
 	unsigned int GetRenderBufferObject() { return m_rbo; }
 private:
-	void CreateRenderTexture(int _width, int _height);
-	void CreateRenderBuffer(int _width, int _height);
+	void CreateRenderTexture();
+	void CreateRenderBuffer();
 	void CreateRenderQuad();
 
 	unsigned int m_screenQuadVAO;
