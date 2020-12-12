@@ -120,11 +120,14 @@ int main(int argc, char *argv[])
 	double lastTime = 0.0;
 
 
-	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Road_to_MonumentValley_Ref.hdr", 1024);
+	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048);
+	//max amount of texture units that can be used concurrently from a model file is currently 9. Skybox uses the 10th texture unit. 
+	int skyboxSampler = 10;
 
 
 	pbrShader->Use();
-	pbrShader->setInt("irradianceMap", 0);
+	//set irradiance map to texture unit 12, to avoid trying to access the same sampler position(0 for albedo, etc)
+	pbrShader->setInt("irradianceMap", skyboxSampler);
 	for (unsigned int i = 0; i < sizeof(lightPos) / sizeof(lightPos[0]); i++)
 	{
 		pbrShader->setVec3("lightPos[" + std::to_string(i) + "]", lightPos[i]);
@@ -214,8 +217,8 @@ int main(int argc, char *argv[])
 			pbrShader->setVec3("viewPos", cam1->getPosition());
 			pbrShader->setViewAndProjectionMatrix(*cam1, true);
 			// bind pre-computed IBL data
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->m_texture->m_id);
+			glActiveTexture(GL_TEXTURE0 + skyboxSampler);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetIrradianceMap().lock()->m_id);
 
 
 			//render sword
@@ -273,7 +276,7 @@ int main(int argc, char *argv[])
 			skyboxShader->Use();
 			skyboxShader->setViewAndProjectionMatrix(*cam1, true);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->m_texture->m_id);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxMap().lock()->m_id);
 			skybox->RenderCube();
 			skyboxShader->StopUsing();
 			glBindVertexArray(0);

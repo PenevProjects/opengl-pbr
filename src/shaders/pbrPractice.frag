@@ -100,7 +100,6 @@ void main()
 	float roughness = texture(material.texture_roughness, fs_in.TexCoords).r;
 	float metallic  = texture(material.texture_metallic, fs_in.TexCoords).r;
 	float ao        = texture(material.texture_ao, fs_in.TexCoords).r;
-	vec3 irradiance = texture(irradianceMap, fs_in.FragPos).rgb;
 
     // transform normal vector to range [-1,1]
     vec3 N = normalize(normals * 2.0 - 1.0);  //normal vector(tangent space)
@@ -146,12 +145,12 @@ void main()
     vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
-    
-    vec3 diffuse      = irradiance.rgb * albedo;
+	vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 diffuse = irradiance * albedo;
     vec3 ambient = (kD * diffuse) * ao;
 	//vec3 ambient = vec3(0.05) * albedo * ao;
 	//YOU ARE TRYING TO ACCESS TEXTURE UNIT 0 FOR BOTH A 2D TEXTURE AND 3D TEXTURE AT THE SAME TIME!
-	vec3 color = texture(irradianceMap, N).rgb * normals; 
+	vec3 color = ambient + Lo; 
 
 	// HDR tonemapping
     color = color / (color + vec3(1.0));

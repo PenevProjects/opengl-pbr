@@ -26,10 +26,10 @@ public:
 	void RenderCube();
 	std::weak_ptr<Texture> GetSkyboxMap() { return m_texture; }
 	std::weak_ptr<Texture> GetIrradianceMap() { return m_irradiance; }
+
+private:
 	std::shared_ptr<Texture> m_texture;
 	std::shared_ptr<Texture> m_irradiance;
-private:
-
 	unsigned int m_vao;
 	void CreateCubeVAO();
 };
