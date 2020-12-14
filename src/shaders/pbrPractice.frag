@@ -15,9 +15,6 @@ in VS_OUT {
 uniform samplerCube irradianceMap;
 
 struct Material {
-	vec3 ambient;
-    vec3 diffuse;
-    vec3 specular; 
     sampler2D texture_albedo;
     sampler2D texture_normal;
 	sampler2D texture_roughness;
@@ -60,6 +57,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
+	//
     float a = roughness*roughness;
     float a2     = a*a;
     float NdotH  = max(dot(N, H), 0.0);
@@ -149,7 +147,6 @@ void main()
     vec3 diffuse = irradiance * albedo;
     vec3 ambient = (kD * diffuse) * ao;
 	//vec3 ambient = vec3(0.05) * albedo * ao;
-	//YOU ARE TRYING TO ACCESS TEXTURE UNIT 0 FOR BOTH A 2D TEXTURE AND 3D TEXTURE AT THE SAME TIME!
 	vec3 color = ambient + Lo; 
 
 	// HDR tonemapping

@@ -56,7 +56,8 @@ int main(int argc, char *argv[])
 	//global opengl state
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL); // for skybox rendering
-	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_MULTISAMPLE);  // for multisample anti-aliasing
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS); //// for lower mip levels in the pre-filter map.
 
 
 
@@ -69,10 +70,17 @@ int main(int argc, char *argv[])
 	std::unique_ptr<Shader> pbrShader = std::make_unique<Shader>("../src/shaders/pbrPractice.vert", "../src/shaders/pbrPractice.frag");
 
 
+	//Skybox uses the 10th texture unit, because the max number of texture units that can be used concurrently from a model file is currently 9. 
+	unsigned int skyboxSamplerID = 10;
+	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Road_to_MonumentValley_Ref.hdr", 2048, skyboxSamplerID);
+
+
 	//floor shader
-	std::shared_ptr<Model> floor = std::make_shared<Model>("../assets/floor/floor.fbx");
-	floor->m_modelMatrix = glm::translate(floor->m_modelMatrix, glm::vec3(0.0f, -3.0f, 0.0f));
-	floor->m_modelMatrix = glm::scale(floor->m_modelMatrix, glm::vec3(50.0f, 0.0f, 50.0f));
+	//std::shared_ptr<Model> floor = std::make_shared<Model>("../assets/floor/floor.fbx");
+	//floor->m_modelMatrix = glm::rotate(floor->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//floor->m_modelMatrix = glm::translate(floor->m_modelMatrix, glm::vec3(0.0f, 0.0f, -10.0f));
+
+
 
 
 	//tv pbr
@@ -82,9 +90,9 @@ int main(int argc, char *argv[])
 	tv->m_modelMatrix = glm::translate(tv->m_modelMatrix, glm::vec3(-40.0f, 0.0f, -10.0f));
 
 	//sword pbr
-	std::shared_ptr<Model> sword = std::make_shared<Model>("../assets/sword/sword.fbx");
-	sword->m_modelMatrix = glm::scale(sword->m_modelMatrix, glm::vec3(10.0f));
-	sword->m_modelMatrix = glm::rotate(sword->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//std::shared_ptr<Model> sword = std::make_shared<Model>("../assets/sword/sword.fbx");
+	//sword->m_modelMatrix = glm::scale(sword->m_modelMatrix, glm::vec3(10.0f));
+	//sword->m_modelMatrix = glm::rotate(sword->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	//mask pbr
 	std::shared_ptr<Model> oniMask = std::make_shared<Model>("../assets/oni/onito.fbx");
@@ -105,10 +113,10 @@ int main(int argc, char *argv[])
 		glm::vec3(25.0f, 3.0f, 10.0f)
 	};
 	glm::vec3 lightColors[4] = {
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f)
+		glm::vec3(30.0f, 30.0f, 30.0f),
+		glm::vec3(30.0f, 30.0f, 30.0f),
+		glm::vec3(30.0f, 30.0f, 30.0f),
+		glm::vec3(30.0f, 30.0f, 30.0f)
 	};
 
 	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 15.0f));
@@ -120,14 +128,11 @@ int main(int argc, char *argv[])
 	double lastTime = 0.0;
 
 
-	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048);
-	//max amount of texture units that can be used concurrently from a model file is currently 9. Skybox uses the 10th texture unit. 
-	int skyboxSampler = 10;
 
 
 	pbrShader->Use();
 	//set irradiance map to texture unit 12, to avoid trying to access the same sampler position(0 for albedo, etc)
-	pbrShader->setInt("irradianceMap", skyboxSampler);
+	pbrShader->setInt("irradianceMap", skyboxSamplerID);
 	for (unsigned int i = 0; i < sizeof(lightPos) / sizeof(lightPos[0]); i++)
 	{
 		pbrShader->setVec3("lightPos[" + std::to_string(i) + "]", lightPos[i]);
@@ -138,8 +143,6 @@ int main(int argc, char *argv[])
 
 
 	//SKYBOX////////////////////////////////////////////////
-
-
 
 	skyboxShader->Use();
 	skyboxShader->setInt("environmentCubemap", 0);
@@ -217,19 +220,12 @@ int main(int argc, char *argv[])
 			pbrShader->setVec3("viewPos", cam1->getPosition());
 			pbrShader->setViewAndProjectionMatrix(*cam1, true);
 			// bind pre-computed IBL data
-			glActiveTexture(GL_TEXTURE0 + skyboxSampler);
+			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetIrradianceMap().lock()->m_id);
 
-
-			//render sword
-			sword->RenderMeshes(*pbrShader);
-
-			//render tv
+			//sword->RenderMeshes(*pbrShader);
+			//floor->RenderMeshes(*pbrShader);
 			tv->RenderMeshes(*pbrShader);
-
-			floor->RenderMeshes(*pbrShader);
-
-			//render oni mask
 			oniMask->RenderMeshes(*pbrShader);
 
 			
@@ -276,7 +272,7 @@ int main(int argc, char *argv[])
 			skyboxShader->Use();
 			skyboxShader->setViewAndProjectionMatrix(*cam1, true);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxMap().lock()->m_id);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetPrefilterMap().lock()->m_id);
 			skybox->RenderCube();
 			skyboxShader->StopUsing();
 			glBindVertexArray(0);

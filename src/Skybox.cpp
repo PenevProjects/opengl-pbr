@@ -6,19 +6,28 @@
 #include <iostream>
 
 
-Skybox::Skybox(std::string _pathToHDR, int _size)
+Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 {
-	//setup skybox
+	//setup skybox vao
 	CreateCubeVAO();
-	m_texture = std::make_shared<Texture>(_size, _size, "cubemap");
 
-	int irradianceSize = 32;
+	// setup member vars
+	// ---------------------------------
+	m_environmentMap = std::make_shared<Texture>(_size, _size, "cubemap");
+
+	unsigned int irradianceSize = 32;
 	m_irradiance = std::make_shared<Texture>(irradianceSize, irradianceSize, "cubemap");
+
+	unsigned int mipSize = 128;
+	m_prefilterMap = std::make_shared<Texture>(mipSize, mipSize, "cubemapMip");
+
+
 
 
 	//setup vars
 	std::unique_ptr<Shader> equirectToCubemapShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/equirectangular-to-cubemap.frag");
 	std::unique_ptr<Shader> irradianceConvShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/cubemap-conv.frag");
+	std::unique_ptr<Shader> prefilterConvShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/prefilter-conv.frag");
 	std::unique_ptr<FrameBuffer> environmentFramebuffer = std::make_unique<FrameBuffer>(_size, _size);
 	std::shared_ptr<Texture> hdrTexture = std::make_shared<Texture>(_pathToHDR, "HDR");
 
@@ -36,12 +45,12 @@ Skybox::Skybox(std::string _pathToHDR, int _size)
 	};
 	//set static shader uniform variables
 	equirectToCubemapShader->Use();
-	equirectToCubemapShader->setInt("equirectangularMap", 0);
+	equirectToCubemapShader->setInt("equirectangularMap", _samplerID);
 	equirectToCubemapShader->setMat4("u_Projection", captureProjection);
 
 	//convert HDR equirectangular map to cubemap
 	// ----------------------------------------------------------------------
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0 + _samplerID);
 	glBindTexture(GL_TEXTURE_2D, hdrTexture->m_id);
 
 	// configure the viewport to the capture dimensions.
@@ -51,7 +60,7 @@ Skybox::Skybox(std::string _pathToHDR, int _size)
 	for (unsigned int i = 0; i < 6; ++i)
 	{ //render all 6 faces of cube going through the view matrices and store in member texture id
 		equirectToCubemapShader->setMat4("u_View", captureViews[i]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_texture->m_id, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_environmentMap->m_id, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		RenderCube();
@@ -69,10 +78,10 @@ Skybox::Skybox(std::string _pathToHDR, int _size)
 	// pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
 	// -----------------------------------------------------------------------------
 	irradianceConvShader->Use();
-	irradianceConvShader->setInt("environmentCubemap", 0);
+	irradianceConvShader->setInt("environmentCubemap", _samplerID);
 	irradianceConvShader->setMat4("u_Projection", captureProjection);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture->m_id);
+	glActiveTexture(GL_TEXTURE0 + _samplerID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->m_id);
 
 	glViewport(0, 0, irradianceSize, irradianceSize); // configure the viewport to the capture dimensions.
 	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
@@ -83,6 +92,40 @@ Skybox::Skybox(std::string _pathToHDR, int _size)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		RenderCube();
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	// run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
+	// ----------------------------------------------------------------------------------------------------
+	prefilterConvShader->Use();
+	prefilterConvShader->setInt("environmentCubemap", _samplerID);
+	prefilterConvShader->setMat4("u_Projection", captureProjection);
+	glActiveTexture(GL_TEXTURE0 + _samplerID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->m_id);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
+	unsigned int maxMipLevels = 5;
+	for (unsigned int mip = 0; mip < maxMipLevels; mip++)
+	{
+		// reisze framebuffer according to mip-level size.
+		unsigned int mipWidth = mipSize * std::pow(0.5, mip);
+		unsigned int mipHeight = mipSize * std::pow(0.5, mip);
+		glBindRenderbuffer(GL_RENDERBUFFER, environmentFramebuffer->GetRenderBufferObject());
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+		glViewport(0, 0, mipWidth, mipHeight);
+
+		float roughness = (float)mip / (float)(maxMipLevels - 1);
+		prefilterConvShader->setFloat("roughness", roughness);
+		for (unsigned int i = 0; i < 6; ++i)
+		{
+			prefilterConvShader->setMat4("u_View", captureViews[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_prefilterMap->m_id, mip);
+
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			RenderCube();
+		}
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

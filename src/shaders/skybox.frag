@@ -6,8 +6,8 @@ uniform samplerCube environmentCubemap;
 
 void main()
 {		
-    vec3 envColor = texture(environmentCubemap, WorldPos).rgb;
-    
+    //vec3 envColor = texture(environmentCubemap, WorldPos).rgb;
+    vec3 envColor = textureLod(environmentCubemap, WorldPos, 3).rgb; //FOR MIPMAP TESTING
     // HDR tonemap and gamma correct
     envColor = envColor / (envColor + vec3(1.0));
     envColor = pow(envColor, vec3(1.0/2.2)); 
