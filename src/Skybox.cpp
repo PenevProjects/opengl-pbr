@@ -15,11 +15,10 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 	// ---------------------------------
 	m_environmentMap = std::make_shared<Texture>(_size, _size, "cubemap");
 
-	unsigned int irradianceSize = 32;
-	m_irradiance = std::make_shared<Texture>(irradianceSize, irradianceSize, "cubemap");
-
 	unsigned int mipSize = 128;
-	m_prefilterMap = std::make_shared<Texture>(mipSize, mipSize, "cubemapMip");
+
+	m_prefilterMap = std::make_shared<Texture>(mipSize, mipSize, "cubemapPrefilter");
+
 
 
 
@@ -28,6 +27,7 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 	std::unique_ptr<Shader> equirectToCubemapShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/equirectangular-to-cubemap.frag");
 	std::unique_ptr<Shader> irradianceConvShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/cubemap-conv.frag");
 	std::unique_ptr<Shader> prefilterConvShader = std::make_unique<Shader>("../src/shaders/cubemap.vert", "../src/shaders/prefilter-conv.frag");
+	std::unique_ptr<Shader> brdfLutShader = std::make_unique<Shader>("../src/shaders/framebuf-quad.vert", "../src/shaders/brdf-lut.frag");
 	std::unique_ptr<FrameBuffer> environmentFramebuffer = std::make_unique<FrameBuffer>(_size, _size);
 	std::shared_ptr<Texture> hdrTexture = std::make_shared<Texture>(_pathToHDR, "HDR");
 
@@ -45,12 +45,12 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 	};
 	//set static shader uniform variables
 	equirectToCubemapShader->Use();
-	equirectToCubemapShader->setInt("equirectangularMap", _samplerID);
+	equirectToCubemapShader->setInt("equirectangularMap", 0);
 	equirectToCubemapShader->setMat4("u_Projection", captureProjection);
 
 	//convert HDR equirectangular map to cubemap
 	// ----------------------------------------------------------------------
-	glActiveTexture(GL_TEXTURE0 + _samplerID);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, hdrTexture->m_id);
 
 	// configure the viewport to the capture dimensions.
@@ -66,11 +66,16 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 		RenderCube();
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+
+	//generate mipmap levels for base environment map after it has been generated.
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->m_id);
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
 
 	// create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
 	// ----------------------------------------------------------------------
-
+	unsigned int irradianceSize = 32;
+	m_irradiance = std::make_shared<Texture>(irradianceSize, irradianceSize, "cubemap");
 	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
 	glBindRenderbuffer(GL_RENDERBUFFER, environmentFramebuffer->GetRenderBufferObject());
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, irradianceSize, irradianceSize);
@@ -78,9 +83,9 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 	// pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
 	// -----------------------------------------------------------------------------
 	irradianceConvShader->Use();
-	irradianceConvShader->setInt("environmentCubemap", _samplerID);
+	irradianceConvShader->setInt("environmentCubemap", 0);
 	irradianceConvShader->setMat4("u_Projection", captureProjection);
-	glActiveTexture(GL_TEXTURE0 + _samplerID);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->m_id);
 
 	glViewport(0, 0, irradianceSize, irradianceSize); // configure the viewport to the capture dimensions.
@@ -98,10 +103,11 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 
 	// run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
 	// ----------------------------------------------------------------------------------------------------
+
 	prefilterConvShader->Use();
-	prefilterConvShader->setInt("environmentCubemap", _samplerID);
+	prefilterConvShader->setInt("environmentCubemap", 0);
 	prefilterConvShader->setMat4("u_Projection", captureProjection);
-	glActiveTexture(GL_TEXTURE0 + _samplerID);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_environmentMap->m_id);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
@@ -128,6 +134,24 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 		}
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	//brdf look-up texture setup
+	// --------------------------
+	m_brdfLookUpTexture = std::make_shared<Texture>(_size, _size, "brdfLUT");
+	glBindTexture(GL_TEXTURE_2D, m_brdfLookUpTexture->m_id);
+	// then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
+	glBindFramebuffer(GL_FRAMEBUFFER, environmentFramebuffer->GetFrameBufferObject());
+	glBindRenderbuffer(GL_RENDERBUFFER, environmentFramebuffer->GetRenderBufferObject());
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, _size, _size);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_brdfLookUpTexture->m_id, 0);
+
+	glViewport(0, 0, _size, _size);
+	brdfLutShader->Use();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	environmentFramebuffer->DrawRenderTextureQuad();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 }
 
 Skybox::~Skybox()

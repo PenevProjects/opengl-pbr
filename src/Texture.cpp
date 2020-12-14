@@ -129,14 +129,14 @@ Texture::Texture(const aiTexture* texture, std::string _typeName, bool _gamma)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-
+		stbi_image_free(data);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	else
 	{
 		std::cout << "Embedded texture failed to load." << std::endl;
 	}
-	stbi_image_free(data);
-	glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
 unsigned int Texture::LoadCubemap(std::vector<std::string> _textureFaces)
@@ -170,9 +170,9 @@ unsigned int Texture::LoadCubemap(std::vector<std::string> _textureFaces)
 	return textureID;
 }
 
-Texture::Texture(int _width, int _height, std::string _cube)
+Texture::Texture(int _width, int _height, std::string _mode)
 {
-	if (_cube == "cubemap")
+	if (_mode == "cubemap")
 	{
 		glGenTextures(1, &m_id);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
@@ -185,8 +185,9 @@ Texture::Texture(int _width, int _height, std::string _cube)
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 	}
-	else if (_cube == "cubemapMip")
+	else if (_mode == "cubemapPrefilter")
 	{
 		glGenTextures(1, &m_id);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
@@ -201,9 +202,20 @@ Texture::Texture(int _width, int _height, std::string _cube)
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 	}
+	else if (_mode == "brdfLUT")
+	{
+		glGenTextures(1, &m_id);
+		glBindTexture(GL_TEXTURE_2D, m_id);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, _width, _height, 0, GL_RG, GL_FLOAT, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
 	else
 	{
 		std::cout << "\n This texture ctor can only create cubemaps for now. Use with last arg as 'cube' or 'cubemap'\n";
 		//todo if empty 2d maps are needed.
 	}
+	glBindTexture(GL_TEXTURE_2D, 0);
 }

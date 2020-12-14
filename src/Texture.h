@@ -29,7 +29,7 @@ struct Texture {
 	///2D Texture from embedded texture.
 	Texture(const aiTexture* _texture, std::string _typeName, bool _gamma = false);
 	///Cubemap texture, empty.
-	Texture(int _width, int _height, std::string _cube);
+	Texture(int _width, int _height, std::string _mode);
 	///Calls glDestroy on the current texture.
 	~Texture();
 	//deleting the copy ctors because we need a custom destructor.

@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 	std::unique_ptr<Shader> normalsShader = std::make_unique<Shader>("../src/shaders/pbr.vert", "../src/shaders/pbr.frag");
 	std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/shaders/basic-color.vert", "../src/shaders/basic-color.frag");
 	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/shaders/pure-white.vert", "../src/shaders/pure-white.frag");
-	std::unique_ptr<Shader> framebufShader = std::make_unique<Shader>("../src/shaders/glowing-edges.vert", "../src/shaders/glowing-edges.frag");
+	std::unique_ptr<Shader> framebufShader = std::make_unique<Shader>("../src/shaders/framebuf-quad.vert", "../src/shaders/glowing-edges.frag");
 	std::unique_ptr<Shader> skyboxShader = std::make_unique<Shader>("../src/shaders/skybox.vert", "../src/shaders/skybox.frag");
 	std::unique_ptr<Shader> pbrShader = std::make_unique<Shader>("../src/shaders/pbrPractice.vert", "../src/shaders/pbrPractice.frag");
 
@@ -90,9 +90,9 @@ int main(int argc, char *argv[])
 	tv->m_modelMatrix = glm::translate(tv->m_modelMatrix, glm::vec3(-40.0f, 0.0f, -10.0f));
 
 	//sword pbr
-	//std::shared_ptr<Model> sword = std::make_shared<Model>("../assets/sword/sword.fbx");
-	//sword->m_modelMatrix = glm::scale(sword->m_modelMatrix, glm::vec3(10.0f));
-	//sword->m_modelMatrix = glm::rotate(sword->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	std::shared_ptr<Model> sword = std::make_shared<Model>("../assets/sword/sword.fbx");
+	sword->m_modelMatrix = glm::scale(sword->m_modelMatrix, glm::vec3(10.0f));
+	sword->m_modelMatrix = glm::rotate(sword->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	//mask pbr
 	std::shared_ptr<Model> oniMask = std::make_shared<Model>("../assets/oni/onito.fbx");
@@ -132,7 +132,12 @@ int main(int argc, char *argv[])
 
 	pbrShader->Use();
 	//set irradiance map to texture unit 12, to avoid trying to access the same sampler position(0 for albedo, etc)
-	pbrShader->setInt("irradianceMap", skyboxSamplerID);
+
+	pbrShader->setInt("irradianceMap", skyboxSamplerID + 1);
+	pbrShader->setInt("prefilterMap", skyboxSamplerID + 2);
+	pbrShader->setInt("brdfLUT", skyboxSamplerID + 3);
+
+
 	for (unsigned int i = 0; i < sizeof(lightPos) / sizeof(lightPos[0]); i++)
 	{
 		pbrShader->setVec3("lightPos[" + std::to_string(i) + "]", lightPos[i]);
@@ -219,11 +224,20 @@ int main(int argc, char *argv[])
 			pbrShader->Use();
 			pbrShader->setVec3("viewPos", cam1->getPosition());
 			pbrShader->setViewAndProjectionMatrix(*cam1, true);
-			// bind pre-computed IBL data
-			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetIrradianceMap().lock()->m_id);
 
-			//sword->RenderMeshes(*pbrShader);
+			// bind pre-computed IBL data
+			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 1);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetIrradianceMap().lock()->m_id);
+			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 2);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetPrefilterMap().lock()->m_id);
+			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 3);
+			glBindTexture(GL_TEXTURE_2D, skybox->GetBrdfLUT().lock()->m_id);
+
+
+
+
+
+			sword->RenderMeshes(*pbrShader);
 			//floor->RenderMeshes(*pbrShader);
 			tv->RenderMeshes(*pbrShader);
 			oniMask->RenderMeshes(*pbrShader);
@@ -272,7 +286,7 @@ int main(int argc, char *argv[])
 			skyboxShader->Use();
 			skyboxShader->setViewAndProjectionMatrix(*cam1, true);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetPrefilterMap().lock()->m_id);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxMap().lock()->m_id);
 			skybox->RenderCube();
 			skyboxShader->StopUsing();
 			glBindVertexArray(0);

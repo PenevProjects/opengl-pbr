@@ -14,7 +14,7 @@ FrameBuffer::FrameBuffer(int _width, int _height) :
 	CreateRenderBuffer();
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl << std::endl;
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);	
 }
 
 FrameBuffer::~FrameBuffer()
@@ -73,18 +73,9 @@ void FrameBuffer::CreateRenderQuad()
 	glDeleteBuffers(1, &quadVBO);
 }
 
-void FrameBuffer::DrawRenderTexture(const Shader& _shader)
+void FrameBuffer::DrawRenderTextureQuad()
 {
-	_shader.setFloat("screenWidth", m_width);
-	_shader.setFloat("screenHeight", m_height);
-	_shader.setInt("renderTexture", 0);
-
-	glActiveTexture(GL_TEXTURE0); // activate proper texture unit before binding
-	//set the id of the sampler
-	glBindTexture(GL_TEXTURE_2D, m_textureId);
-
 	glBindVertexArray(m_screenQuadVAO);
-	glDisable(GL_DEPTH_TEST);
-	glBindTexture(GL_TEXTURE_2D, m_textureId);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
 }

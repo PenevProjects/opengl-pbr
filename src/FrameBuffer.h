@@ -24,7 +24,7 @@ public:
 	*Sets uniforms of "screenWidth" and "screenHeight" to member variables m_width and m_height.
 	*Renders the m_textureId applied on a screen quad.
 	*/
-	void DrawRenderTexture(const Shader& _shader);
+	void DrawRenderTextureQuad();
 	unsigned int GetFrameBufferObject() { return m_fbo; }
 	unsigned int GetRenderTexture() { return m_textureId; }
 	unsigned int GetRenderBufferObject() { return m_rbo; }

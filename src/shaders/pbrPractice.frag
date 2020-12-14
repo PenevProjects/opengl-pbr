@@ -7,12 +7,11 @@ in VS_OUT {
     vec3 FragPos;
 	vec3 Normal;
     vec2 TexCoords;
-    vec3 TangentLightPos[4];
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
 } fs_in;
 
 uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
 
 struct Material {
     sampler2D texture_albedo;
@@ -33,9 +32,9 @@ uniform vec3 viewPos;
 const float PI = 3.14159265358979323846264338327950;
 
 
-vec3 getNormalFromMap()
+vec3 getNormalFromMap(sampler2D _normalMap)
 {
-    vec3 tangentNormal = texture(material.texture_normal, fs_in.TexCoords).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(_normalMap, fs_in.TexCoords).rgb * 2.0 - 1.0;
 
     vec3 Q1  = dFdx(fs_in.FragPos);
     vec3 Q2  = dFdy(fs_in.FragPos);
@@ -54,6 +53,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+} 
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -94,15 +98,15 @@ void main()
 {
 	//convert to linear space first
 	vec3 albedo     = pow(texture(material.texture_albedo, fs_in.TexCoords).rgb, vec3(2.2));
-    vec3 normals    = texture(material.texture_normal, fs_in.TexCoords).rgb; 
+    vec3 normals    = getNormalFromMap(material.texture_normal);  //have to be converted from tangent space to world space
 	float roughness = texture(material.texture_roughness, fs_in.TexCoords).r;
 	float metallic  = texture(material.texture_metallic, fs_in.TexCoords).r;
 	float ao        = texture(material.texture_ao, fs_in.TexCoords).r;
 
     // transform normal vector to range [-1,1]
-    vec3 N = normalize(normals * 2.0 - 1.0);  //normal vector(tangent space)
-    vec3 V = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos); //viewing vector(tangent space)
-
+    vec3 N = normals;
+    vec3 V = normalize(viewPos - fs_in.FragPos); //viewing vector(tangent space)
+	vec3 R = reflect(-V, N);
 
 	vec3 F0 = vec3(0.04); //reflectance ratio at normal incidence
 	F0 = mix(F0, albedo, metallic); //default value of dia-electrics is 0.04, for metallics lerp over to albedo using metallic map
@@ -112,7 +116,7 @@ void main()
 
 	for(int i = 0; i < 4; i++) 
 	{
-		vec3 L = normalize(fs_in.TangentLightPos[i] - fs_in.TangentFragPos); //light vector (tangent space)
+		vec3 L = normalize(lightPos[i] - fs_in.FragPos); //light vector (tangent space)
 		vec3 H = normalize(V + L); //halfway vector(tangent space)
   
 		float distanceLtoPos = length(lightPos[i] - fs_in.FragPos);
@@ -140,13 +144,19 @@ void main()
 	}
 
 	//IBL environment lighting
-    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+	vec3 kS = F;
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
 	vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * albedo;
-    vec3 ambient = (kD * diffuse) * ao;
-	//vec3 ambient = vec3(0.05) * albedo * ao;
+	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+    const float maxReflectionLOD = 4.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * maxReflectionLOD).rgb;    
+    vec2 brdf  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 ambient = (kD * diffuse + specular) * ao;
 	vec3 color = ambient + Lo; 
 
 	// HDR tonemapping
