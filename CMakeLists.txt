@@ -23,8 +23,6 @@ add_executable(glShadows
 	src/main.cpp
 	src/Camera.h
 	src/Camera.cpp
-	src/Entity.h
-	src/Entity.cpp
 	src/Shader.h
 	src/Shader.cpp
 	src/Texture.h

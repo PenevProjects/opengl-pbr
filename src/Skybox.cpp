@@ -15,7 +15,7 @@ Skybox::Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID)
 	// ---------------------------------
 	m_environmentMap = std::make_shared<Texture>(_size, _size, "cubemap");
 
-	unsigned int mipSize = 128;
+	unsigned int mipSize = 512;
 
 	m_prefilterMap = std::make_shared<Texture>(mipSize, mipSize, "cubemapPrefilter");
 

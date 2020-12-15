@@ -7,33 +7,26 @@ layout (location = 4) in vec3 aBitangent;
 
 out VS_OUT {
     vec3 FragPos;
+	vec3 Normal;
     vec2 TexCoords;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
+	vec3 Tangent;
+	vec3 Bitangent;
 } vs_out;
 
 uniform mat4 u_Projection;
 uniform mat4 u_View;
 uniform mat4 u_Model;
 
-uniform vec3 lightPos;
 uniform vec3 viewPos;
 
 void main()
 {
     vs_out.FragPos = vec3(u_Model * vec4(aPos, 1.0));   
     vs_out.TexCoords = aTexCoords;
-    
-    mat3 normalMatrix = transpose(inverse(mat3(u_Model)));
-    vec3 T = normalize(normalMatrix * aTangent);
-	vec3 B = normalize(normalMatrix * aBitangent);
-    vec3 N = normalize(normalMatrix * aNormal);
-    T = normalize(T - dot(T, N) * N);
+	vs_out.Normal = mat3(u_Model) * aNormal;
+	vs_out.Tangent = mat3(u_Model) * aTangent;   
+	vs_out.Bitangent = mat3(u_Model) * aBitangent;   
+	
 
-    mat3 TBNinverse = transpose(mat3(T, B, N));   //we need the inverse so that we can transform from world to tangent space  
-    vs_out.TangentLightPos = TBNinverse * lightPos;
-    vs_out.TangentViewPos  = TBNinverse * viewPos;
-    vs_out.TangentFragPos  = TBNinverse * vs_out.FragPos;
     gl_Position = u_Projection * u_View * u_Model * vec4(aPos, 1.0);
 }

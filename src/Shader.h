@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
-#include "Entity.h"
 #include "Camera.h"
 
 
@@ -25,14 +24,6 @@ public:
 	void Use();
 	///Unbinds current shader object
 	void StopUsing();
-	/**
-	*\brief Draws an entity once.
-	*
-	*The Entity that is fed in needs to have a numVert value and a viewMatrix.
-	*
-	*@param _toRender Entity to be rendered.
-	*/
-	void RenderObject(const Entity& _toRender);
 	/**
 	*\brief Sets viewMatrix of current shader.
 	*

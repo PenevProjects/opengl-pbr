@@ -1,5 +1,4 @@
 #include "Shader.h"
-#include "Entity.h"
 #include "Camera.h"
 
 #include <string>
@@ -109,11 +108,4 @@ void Shader::setViewAndProjectionMatrix(const Camera& _cam, bool perspective3D)
 		setMat4("u_Projection", _cam.generateProjMatrixPersp());
 	else
 		setMat4("u_Projection", _cam.generateProjMatrixOrtho());
-}
-
-void Shader::RenderObject(const Entity& _toRender)
-{
-	setMat4("u_Model", _toRender.modelMatrix);
-	glBindVertexArray(_toRender.m_vao);
-	glDrawArrays(GL_TRIANGLES, 0, _toRender.m_numVerts);
 }
