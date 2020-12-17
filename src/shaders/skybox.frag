@@ -2,11 +2,11 @@
 out vec4 FragColor;
 in vec3 WorldPos;
 
-uniform samplerCube environmentCubemap;
+uniform samplerCube u_environmentCubemap;
 
 void main()
 {		
-    vec3 envColor = texture(environmentCubemap, WorldPos).rgb;
+    vec3 envColor = texture(u_environmentCubemap, WorldPos).rgb;
     //vec3 envColor = textureLod(environmentCubemap, WorldPos, 3).rgb; //FOR MIPMAP TESTING
     // HDR tonemap and gamma correct
     envColor = envColor / (envColor + vec3(1.0));

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <exception>
 #include <vector>
+#include <windows.h>
 
 
 
@@ -22,6 +23,17 @@
 
 int main(int argc, char *argv[])
 {
+
+
+	char answer;
+	bool carFlag = false;
+	std::cout << "Would you like to render a car model? Loads slow but it showcases the beauty of PBR!\n (Y/y | N/n): ";
+	std::cin >> answer;
+	if (answer == 'y' || answer == 'Y')
+	{
+		carFlag = true;
+	}
+
 	// Global SDL state
 	// -------------------------------
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -33,11 +45,11 @@ int main(int argc, char *argv[])
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 
-	SDL_Window *window = SDL_CreateWindow("OpenGL PBR",
+	SDL_Window *window = SDL_CreateWindow("OpenGL PBR. FPS: ",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		WINDOW_WIDTH, WINDOW_HEIGHT,
 		SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-	
+
 	// Lock in mouse
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	if (!SDL_GL_CreateContext(window))
@@ -57,7 +69,7 @@ int main(int argc, char *argv[])
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS); //// for lower mip levels in the pre-filter map.
 
 	// turn on multisample anti-aliasing
-	glEnable(GL_MULTISAMPLE);  
+	glEnable(GL_MULTISAMPLE);
 	//ensure multisampling is nicest quality
 	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
@@ -73,14 +85,20 @@ int main(int argc, char *argv[])
 	std::unique_ptr<Shader> pbrShader = std::make_unique<Shader>("../src/shaders/pbr.vert", "../src/shaders/pbr.frag");
 
 
-	//Skybox uses the 10th texture unit, because the max number of texture units that can be used concurrently from a model file is currently 9. 
+	//Max number of texture units that can be used concurrently from a model file is currently 9. 
 	unsigned int skyboxSamplerID = 10;
-	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048, skyboxSamplerID);
+	//skybox params: file, skybox size, reflection size, samplerid
+	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/night4k.hdr", 2048);
 
 
-	//car - eyecandy, but loads slow
-	//std::shared_ptr<Model> car = std::make_shared<Model>("../assets/car/car.fbx");
-	//car->m_modelMatrix = glm::translate(car->m_modelMatrix, glm::vec3(0.0f, -10.0f, 0.0f));
+	//car - DONT FORGET DRAW CALL eyecandy, but loads slow
+	std::shared_ptr<Model> car;
+	if (carFlag)
+	{
+		car = std::make_shared<Model>("../assets/car/car.fbx");
+		car->m_modelMatrix = glm::translate(car->m_modelMatrix, glm::vec3(0.0f, -10.0f, 0.0f));
+
+	}
 
 	//tv pbr
 	std::shared_ptr<Model> tv = std::make_shared<Model>("../assets/tv/tv.fbx");
@@ -99,42 +117,47 @@ int main(int argc, char *argv[])
 	oniMask->m_modelMatrix = glm::translate(oniMask->m_modelMatrix, glm::vec3(15.0f, -5.0f, 0.0f));
 
 
+
+
+
+	glm::vec3 lightPos[] {
+		glm::vec3{ 0.0f, 1.0f, 20.0f},
+		glm::vec3{ 25.0f, 3.0f, 10.0f},
+		glm::vec3{-25.0f, 3.0f, 10.0f},
+	};
+	glm::vec3 lightColors[] {
+		glm::vec3{200.0f, 200.0f, 200.0f},
+		glm::vec3{50.0f, 50.0f, 50.0f},
+		glm::vec3{50.0f, 50.0f, 50.0f},
+	};
+
+
 	std::shared_ptr<Model> lamp0 = std::make_shared<Model>("../assets/cube.obj");
 	std::shared_ptr<Model> lamp1 = std::make_shared<Model>("../assets/cube.obj");
+	lamp1->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[1]);
+	lamp1->m_modelMatrix = glm::scale(lamp1->m_modelMatrix, glm::vec3(0.2f, 0.2f, 0.2f));
 	std::shared_ptr<Model> lamp2 = std::make_shared<Model>("../assets/cube.obj");
-	std::shared_ptr<Model> lamp3 = std::make_shared<Model>("../assets/cube.obj");
+	lamp2->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[2]);
+	lamp2->m_modelMatrix = glm::scale(lamp2->m_modelMatrix, glm::vec3{0.2f, 0.2f, 0.2f});
 
-
-	glm::vec3 lightPos[3] = {
-		glm::vec3(0.0f, 1.0f, 10.0f),
-		glm::vec3(0.0f, 10.0f, -10.0f),
-		glm::vec3(-25.0f, 3.0f, 10.0f),
-	};
-	glm::vec3 lightColors[3] = {
-		glm::vec3(50.0f, 50.0f, 50.0f),
-		glm::vec3(50.0f, 50.0f, 50.0f),
-		glm::vec3(50.0f, 50.0f, 50.0f),
-	};
-
-	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>(glm::vec3(0.0f, 0.0f, 15.0f));
+	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>(glm::vec3{ 0.0f, 0.0f, 15.0 });
 
 	bool quit = false;
-	float translation = 0.0f;
-	double lastTime = 0.0;
+	float translation{ 0.0f };
+	double lastTime{ 0.0 };
 
 
 	pbrShader->Use();
-	//set irradiance map to texture unit 12, to avoid trying to access the same sampler position(0 for albedo, etc)
-
-	pbrShader->setInt("irradianceMap", skyboxSamplerID + 1);
-	pbrShader->setInt("prefilterMap", skyboxSamplerID + 2);
-	pbrShader->setInt("brdfLUT", skyboxSamplerID + 3);
+	//set irradiance map to higher texture units, to prevent 
+	pbrShader->setInt("u_irradianceMap", skyboxSamplerID + 1);
+	pbrShader->setInt("u_prefilterMap", skyboxSamplerID + 2);
+	pbrShader->setInt("u_brdfLUT", skyboxSamplerID + 3);
 
 
 	for (unsigned int i = 0; i < sizeof(lightPos) / sizeof(lightPos[0]); i++)
 	{
-		pbrShader->setVec3("lightPos[" + std::to_string(i) + "]", lightPos[i]);
-		pbrShader->setVec3("lightColors[" + std::to_string(i) + "]", lightColors[i]);
+		pbrShader->setVec3("u_lightPos[" + std::to_string(i) + "]", lightPos[i]);
+		pbrShader->setVec3("u_lightColors[" + std::to_string(i) + "]", lightColors[i]);
 	}
 	pbrShader->StopUsing();
 
@@ -143,10 +166,14 @@ int main(int argc, char *argv[])
 	//SKYBOX////////////////////////////////////////////////
 
 	skyboxShader->Use();
-	skyboxShader->setInt("environmentCubemap", skyboxSamplerID);
+	skyboxShader->setInt("u_environmentCubemap", skyboxSamplerID);
 	skyboxShader->StopUsing();
 	//wireframe mode
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+
+
+	Time::Update();
 
 	while (!quit)
 	{
@@ -177,90 +204,85 @@ int main(int argc, char *argv[])
 			}
 
 		}
-		//time calculations
 		Time::Update();
-
-		if (Time::LimitFPS(60.0f))
-		{
-			Time::DisplayFPSinWindowTitle(window);
-
-			//window resizing calculationg
-			int width = 0;
-			int height = 0;
-			SDL_GetWindowSize(window, &width, &height);
-			glViewport(0, 0, width, height);
+		Time::DisplayFPSinWindowTitle(window);
+		//window resizing calculationg
+		int width = 0;
+		int height = 0;
+		SDL_GetWindowSize(window, &width, &height);
+		glViewport(0, 0, width, height);
 
 
 
-			//camera updates
-			cam1->ProcessKeyboardInput();
-			cam1->ProcessZoom();
-			cam1->ProcessWindowResizing(width, height);
+		//camera updates
+		cam1->ProcessKeyboardInput();
+		cam1->ProcessZoom();
+		cam1->ProcessWindowResizing(width, height);
 
 	
 
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, framebuf1->GetID());
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glBindFramebuffer(GL_FRAMEBUFFER, framebuf1->GetID());
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 
-			pbrShader->Use();
-			pbrShader->setVec3("viewPos", cam1->getPosition());
-			pbrShader->setVec3("lightPos[0]", lightPos[0]);
-			pbrShader->setViewAndProjectionMatrix(*cam1, true);
+		pbrShader->Use();
+		pbrShader->setVec3("u_viewPos", cam1->getPosition());
+		pbrShader->setVec3("u_lightPos[0]", lightPos[0]);
+		pbrShader->setViewAndProjectionMatrix(*cam1, true);
 
-			// bind pre-computed IBL data
-			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetIrradianceMap().lock()->m_id);
-			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 2);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetPrefilterMap().lock()->m_id);
-			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 3);
-			glBindTexture(GL_TEXTURE_2D, skybox->GetBrdfLUT().lock()->m_id);
-
-
+		// bind pre-computed IBL data
+		glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 1);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetIrradianceMap().lock()->m_id);
+		glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 2);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetPrefilterMap().lock()->m_id);
+		glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 3);
+		glBindTexture(GL_TEXTURE_2D, skybox->GetBrdfLUT().lock()->m_id);
 
 
 
-			sword->RenderMeshes(*pbrShader);
-			//car->RenderMeshes(*pbrShader);
-			tv->RenderMeshes(*pbrShader);
-			oniMask->RenderMeshes(*pbrShader);
-
-			pbrShader->StopUsing();
-
-			lampShader->Use();
-
-			float speed = 0.001f;
-			float range = 10.0f;
-			translation = glm::sin(SDL_GetTicks()*speed)*range; //oscillate
-			lightPos[0].x = translation;
-
-
-			lampShader->setViewAndProjectionMatrix(*cam1, true);
-			lamp0->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[0]);
-			lamp0->RenderMeshes(*lampShader);
-			lamp1->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[1]);
-			lamp1->RenderMeshes(*lampShader);
-			lamp2->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[2]);
-			lamp2->RenderMeshes(*lampShader);
-
-			lampShader->StopUsing();
-
-
-			///////////////////////SKYBOX//////////////////////
-			skyboxShader->Use();
-			skyboxShader->setViewAndProjectionMatrix(*cam1, true);
-			glActiveTexture(GL_TEXTURE0 + skyboxSamplerID);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxMap().lock()->m_id);
-			skybox->RenderCube();
-			skyboxShader->StopUsing();
-			glBindVertexArray(0);
-			
-			Time::Reset();
-			SDL_GL_SwapWindow(window);
+		if (carFlag)
+		{
+			car->RenderMeshes(*pbrShader);
 		}
+
+		sword->RenderMeshes(*pbrShader);
+		tv->RenderMeshes(*pbrShader);
+		oniMask->RenderMeshes(*pbrShader);
+
+		pbrShader->StopUsing();
+
+		lampShader->Use();
+
+		float speed = 0.001f;
+		float range = 10.0f;
+		translation = glm::sin(SDL_GetTicks()*speed)*range; //oscillate
+		lightPos[0].x = translation;
+
+
+		lampShader->setViewAndProjectionMatrix(*cam1, true);
+		lamp0->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[0]);
+		lamp0->m_modelMatrix = glm::scale(lamp0->m_modelMatrix, glm::vec3{ 0.4f });
+		lamp0->RenderMeshes(*lampShader);
+		lamp1->RenderMeshes(*lampShader);
+		lamp2->RenderMeshes(*lampShader);
+
+		lampShader->StopUsing();
+
+
+		///////////////////////SKYBOX//////////////////////
+		skyboxShader->Use();
+		skyboxShader->setViewAndProjectionMatrix(*cam1, true);
+		glActiveTexture(GL_TEXTURE0 + skyboxSamplerID);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxMap().lock()->m_id);
+		skybox->RenderCube();
+		skyboxShader->StopUsing();
+		glBindVertexArray(0);
+			
+		SDL_GL_SwapWindow(window);
+		Time::Reset();
 	}
 
 	SDL_DestroyWindow(window);

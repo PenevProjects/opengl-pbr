@@ -11,12 +11,7 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
-// Default camera values
-extern const float gYAW;
-extern const float gPITCH;
-extern const float gSPEED;
-extern const float gSENSITIVITY;
-extern const float gZOOM;
+
 
 /**
 * \brief Contains graphics matrices.

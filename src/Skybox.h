@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "Texture.h"
+#include "FrameBuffer.h"
 
 class Skybox
 {
@@ -19,7 +20,7 @@ public:
 	* @param _width Specified width of render texture for the cubemap dimensions.
 	* @param _height Specified height of render texture for the cubemap dimensions.
 	*/
-	Skybox(std::string _pathToHDR, int _size, unsigned int _samplerID);
+	Skybox(std::string _pathToHDR, unsigned int _size);
 	~Skybox();
 	Skybox(const Skybox&) = delete;
 	Skybox& operator=(const Skybox&) = delete;
@@ -34,6 +35,22 @@ private:
 	std::shared_ptr<Texture> m_irradiance;
 	std::shared_ptr<Texture> m_prefilterMap;
 	std::shared_ptr<Texture> m_brdfLookUpTexture;
-	unsigned int m_vao;
+
+	std::shared_ptr<FrameBuffer> m_framebuffer;
+	
+	//todo:
+	//void TransformHDRtoCubemap();	
+	//void GenerateEnvironmentMap();
+	//void GenerateIrradianceMap();
+	//void GeneratePrefilterMap();
+	//void GenerateBrdfLUT();
+	
 	void CreateCubeVAO();
+
+	unsigned int m_vao;
+	unsigned int m_size;
+	std::string m_path;
+
+	glm::mat4 m_captureProjection;
+	glm::mat4 m_captureView[6];
 };

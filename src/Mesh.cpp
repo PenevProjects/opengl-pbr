@@ -141,21 +141,21 @@ void Mesh::setupMeshVAO()
 
 void Mesh::Render(const Shader &_shader)
 {
-	_shader.setBool("hasTextures", false);
-
-	_shader.setVec3("material.diffuse", this->m_colors.diffuse);
-	_shader.setVec3("material.specular", this->m_colors.specular);
-	_shader.setVec3("material.ambient", this->m_colors.ambient);
+	//for models without textures
+	//_shader.setBool("hasTextures", false);
+	//_shader.setVec3("material.diffuse", this->m_colors.diffuse);
+	//_shader.setVec3("material.specular", this->m_colors.specular);
+	//_shader.setVec3("material.ambient", this->m_colors.ambient);
 	if (!m_textures.empty())
 	{
-		_shader.setBool("hasTextures", true);
+		//_shader.setBool("hasTextures", true);
 		for (unsigned int i = 0; i < m_textures.size(); i++)
 		{
-			glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
 			// retrieve texture name
 			std::string name = m_textures[i]->m_typeName;
 			//set the id of the sampler
 			_shader.setInt(("material." + name).c_str(), i);
+			glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
 			glBindTexture(GL_TEXTURE_2D, m_textures[i]->m_id);
 		}
 	}
@@ -163,8 +163,5 @@ void Mesh::Render(const Shader &_shader)
 	glBindVertexArray(m_vao);
 	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
-	//default
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
 }
 

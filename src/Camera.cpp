@@ -1,22 +1,22 @@
 #include "Camera.h"
 #include "Time.h"
 
-extern const float gYAW = -90.0f;
-extern const float gPITCH = 0.0f;
-extern const float gSPEED = 10.0f;
-extern const float gSENSITIVITY = 0.1f;
-extern const float gZOOM = 45.0f;
+extern const float defaultYAW = -90.0f;
+extern const float defaultPITCH = 0.0f;
+extern const float defaultSPEED = 15.0f;
+extern const float defaultSENSITIVITY = 0.1f;
+extern const float defaultZOOM = 45.0f;
 
 
 int Camera::m_ScreenWidth = WINDOW_WIDTH;
 int Camera::m_ScreenHeight = WINDOW_HEIGHT;
 
 Camera::Camera(glm::vec3 _position, glm::vec3 _facing, glm::vec3 _up) :
-	m_Yaw(gYAW),
-	m_Pitch(gPITCH),
-	m_CameraSensitivity(gSENSITIVITY),
-	m_CameraMovementSpeed(gSPEED),
-	m_FOV(gZOOM),
+	m_Yaw(defaultYAW),
+	m_Pitch(defaultPITCH),
+	m_CameraSensitivity(defaultSENSITIVITY),
+	m_CameraMovementSpeed(defaultSPEED),
+	m_FOV(defaultZOOM),
 	m_Position(_position),
 	m_Facing(_facing),
 	m_Up(_up),

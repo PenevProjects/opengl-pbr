@@ -2,7 +2,7 @@
 out vec4 FragColor;
 in vec3 WorldPos;
 
-uniform samplerCube environmentCubemap;
+uniform samplerCube u_environmentCubemap;
 
 const float PI = 3.14159265359;
 
@@ -39,7 +39,7 @@ void main()
             // tangent space to world (from "in relation to a normal" to "in relation to vertex positions"
             vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N; 
 			//sample environment cube at the given coordinate
-            irradiance += texture(environmentCubemap, sampleVec).rgb * cos(theta) * sin(theta);
+            irradiance += texture(u_environmentCubemap, sampleVec).rgb * cos(theta) * sin(theta);
             nrSamples++;
         }
     }

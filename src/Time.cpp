@@ -2,47 +2,47 @@
 #include <sstream>
 #include <iostream>
 
-Time::Time()
-{}
-Time::~Time() 
-{}
+LARGE_INTEGER Time::StartingTime{ 0 };
+LARGE_INTEGER Time::EndingTime{ 0 };
+LARGE_INTEGER Time::ElapsedMicroseconds{ 0 };
+LARGE_INTEGER Time::Frequency{ 0 };
+double Time::deltaTime{ 0.007 };
+int Time::frames{ 0 };
+float Time::avgFPS{ 0.0f };
 
-
-Uint32 Time::m_lastTick = 0;
-double Time::m_deltaTime = 0.1f;
-Uint32 Time::m_deltaTicks = 0;
-double Time::m_fps = 0;
-int Time::fpsTimer = 0;
-int Time::fps5Ticks = 0;
-
+void Time::Update()
+{
+	QueryPerformanceFrequency(&Frequency);
+	QueryPerformanceCounter(&StartingTime);
+}
 
 void Time::Reset()
 {
-	m_lastTick = SDL_GetTicks();
-	m_deltaTicks = 0;
-	m_deltaTime = 0;
+	// We now have the elapsed number of ticks, along with the
+	// number of ticks-per-second. We use these values
+	// to convert to the number of elapsed microseconds.
+	// To guard against loss-of-precision, we convert
+	// to microseconds *before* dividing by ticks-per-second.
+	//
+	QueryPerformanceCounter(&EndingTime);
+	ElapsedMicroseconds.QuadPart = EndingTime.QuadPart - StartingTime.QuadPart;
+	ElapsedMicroseconds.QuadPart *= 1000000;
+	ElapsedMicroseconds.QuadPart /= Frequency.QuadPart;
+	deltaTime = (double)ElapsedMicroseconds.QuadPart / 1000000.0;
+	frames++;
+	avgFPS += 1.0f / (float)deltaTime;
 }
-void Time::Update()
-{
-	m_deltaTicks = SDL_GetTicks() - m_lastTick;
-	m_deltaTime = m_deltaTicks / 1000.0f;
-}
-
-bool Time::LimitFPS(double _fps)
-{
-	if (_fps != m_fps)
-	{
-		m_fps = _fps;
-	}
-	if (m_deltaTime >= 1.0f / _fps) {	
-		return true;
-	}
-	return false;
-}
-
 void Time::DisplayFPSinWindowTitle(SDL_Window* _window)
 {
-	std::stringstream ss;
-	ss << "OPENGL, FPS: " << 1.0f/((SDL_GetTicks() - m_lastTick)/1000.0f);
-	SDL_SetWindowTitle(_window, ss.str().c_str() );
+	//use average fps over 10 frames
+	if (frames > 10)
+	{
+		std::stringstream ss;
+		ss << "OpenGL PBR. FPS: " << avgFPS/frames;
+		SDL_SetWindowTitle(_window, ss.str().c_str());
+		avgFPS = 0;
+		frames = 0;
+	}
 }
+
+
