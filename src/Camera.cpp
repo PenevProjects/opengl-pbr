@@ -3,7 +3,7 @@
 
 extern const float defaultYAW = -90.0f;
 extern const float defaultPITCH = 0.0f;
-extern const float defaultSPEED = 15.0f;
+extern const float defaultSPEED = 10.0f;
 extern const float defaultSENSITIVITY = 0.1f;
 extern const float defaultZOOM = 45.0f;
 

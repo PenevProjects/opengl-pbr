@@ -8,7 +8,7 @@ class Shader;
 
 class FrameBuffer {
 public:
-	/** \brief Framebuffer ctor with default dimensions of 800x600.
+	/** \brief Framebuffer ctor .
 	*
 	* Constructs with a FrameBuffer object and creates its render texture and render buffer object.
 	* @param _width Dimension of framebuffer width.
@@ -19,11 +19,6 @@ public:
 	FrameBuffer(const FrameBuffer&) = delete;
 	FrameBuffer& operator=(const FrameBuffer&) = delete;
 
-	/**\brief Function for rendering a quad with post-processing effects.
-	*
-	*Sets uniforms of "screenWidth" and "screenHeight" to member variables m_width and m_height.
-	*Renders the m_textureId applied on a screen quad.
-	*/
 	void DrawRenderTextureQuad();
 	unsigned int GetFrameBufferObject() { return m_fbo; }
 	unsigned int GetRenderTexture() { return m_textureId; }

@@ -34,7 +34,7 @@ uniform vec3 u_viewPos;
 
 const float PI = 3.14159265359;
 
-
+// ----------------------------------------------------------------------------
 vec3 getNormalFromMap(sampler2D _normalMap)
 {
     vec3 tangentNormal = texture(_normalMap, v.TexCoords).rgb * 2.0 - 1.0;
@@ -45,19 +45,21 @@ vec3 getNormalFromMap(sampler2D _normalMap)
 
     return normalize(TBN * tangentNormal);
 }
-
+// ----------------------------------------------------------------------------
+//F0 is specular reflectance at normal incidence, cosTheta is incident angle
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
-
+// ----------------------------------------------------------------------------
 // from: https://seblagarde.wordpress.com/2011/08/17/hello-world/
-//-------------------------------------------
+//F0 is specular reflectance at normal incidence, cosTheta is incident angle
 vec3 fresnelSchlickRoughness(float _cosTheta, vec3 _F0, float _roughness)
 {
     return _F0 + (max(vec3(1.0 - _roughness), _F0) - _F0) * pow(max(1.0 - _cosTheta, 0.0), 5.0);
 } 
-
+// ----------------------------------------------------------------------------
+//Normal distribution function: approximates the relative surface area of microfacets exactly aligned to the (halfway) vector H.
 float DistributionGGX(vec3 _N, vec3 _H, float _roughness)
 {
 	//square as per empirical observations of Disney
@@ -71,32 +73,33 @@ float DistributionGGX(vec3 _N, vec3 _H, float _roughness)
 	
     return num / denom;
 }
-
+// ----------------------------------------------------------------------------
+//Geometry function: approximates the relative surface area where micro surface details overshadow each other
 float GeometrySchlickGGX(float _NdotV, float _roughness)
 {
-	//using direct lighting
-//    float alpha = (_roughness + 1.0);
-//    float k = (alpha*alpha) / 8.0;
-
-	//using ibl lighting
-	float k = (_roughness*_roughness)/2.0;
+	//as described in "Specular G" from Unreal's notes,
+	//reduce hotness by remapping roughness
+    float alpha = (_roughness + 1.0);
+    float k = (alpha*alpha) / 8.0;
 	
     return _NdotV / (_NdotV * (1.0 - k) + k);
 }
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+// ----------------------------------------------------------------------------
+//Geometry sum function: To account for both Viewing vector(geometry obstruction) and Light vector(geometry shadowing)
+float GeometrySmith(vec3 _N, vec3 _V, vec3 _L, float _roughness)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
+    float NdotV = max(dot(_N, _V), 0.0);
+    float NdotL = max(dot(_N, _L), 0.0);
+    float ggx2  = GeometrySchlickGGX(NdotV, _roughness);
+    float ggx1  = GeometrySchlickGGX(NdotL, _roughness);
 	
     return ggx1 * ggx2;
 }
 
+
 void main()
 {
-	//convert to linear space first
-	vec3 albedo     = pow(texture(material.texture_albedo, v.TexCoords).rgb, vec3(2.2)); //gamma-correct for sRGB to linear
+	vec3 albedo     = pow(texture(material.texture_albedo, v.TexCoords).rgb, vec3(2.2)); //gamma-correct sRGB to linear
     vec3 normals    = getNormalFromMap(material.texture_normal);  //have to be converted from tangent space to world space
 	float roughness = texture(material.texture_roughness, v.TexCoords).r; //greyscale
 	float metallic  = texture(material.texture_metallic, v.TexCoords).r; //greyscale
@@ -113,7 +116,8 @@ void main()
 	//for reflectance equation
 	vec3 Lo = vec3(0.0);
 
-	//CALCULATE FOR EACH LIGHT IN SCENE. Take size of lightPos.
+	//---------------
+	//Process direct lighting. Calculate for each light object in the scene. 
 	for(int i = 0; i < u_lightPos.length(); i++) 
 	{
 		vec3 L = normalize(u_lightPos[i] - v.FragPos); //light vector
@@ -153,7 +157,6 @@ void main()
     vec3 diffuse = irradiance * albedo;
 	// IBL Specular sample both the pre-filter map and the BRDF lut and combine them together - Split-Sum from Karis's notes to get the IBL specular part.
 	// -----------------------
-
 	//define max level of detail of the roughness map used. this is MIP COUNT when calling the prefiltering shader.
     const float maxReflectionLOD = 4.0;
     vec3 prefilteredColor = textureLod(u_prefilterMap, R,  roughness * maxReflectionLOD).rgb;    

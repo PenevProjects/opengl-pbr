@@ -32,7 +32,6 @@ struct Colors {
 };
 
 class Mesh {
-	//friend class Texture;
 public:
 	std::vector<Vertex> m_vertices;
 	std::vector<unsigned int> m_indices;

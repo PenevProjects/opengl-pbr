@@ -117,15 +117,15 @@ Skybox::Skybox(std::string _path, unsigned int _size) :
 	for (unsigned int mip = 0; mip < maxMipLevels; mip++)
 	{
 		// reisze framebuffer according to mip-level size.
-		unsigned int mipWidth = reflectionSize * std::pow(0.5, mip);
-		unsigned int mipHeight = reflectionSize * std::pow(0.5, mip);
+		unsigned int mipWidth = reflectionSize * (int)std::pow(0.5, mip);
+		unsigned int mipHeight = reflectionSize * (int)std::pow(0.5, mip);
 		glBindRenderbuffer(GL_RENDERBUFFER, environmentFramebuffer->GetRenderBufferObject());
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
 		glViewport(0, 0, mipWidth, mipHeight);
 
 		float roughness = (float)mip / (float)(maxMipLevels - 1);
 		prefilterConvShader->setFloat("u_roughness", roughness);
-		prefilterConvShader->setFloat("u_resolution", reflectionSize);
+		prefilterConvShader->setFloat("u_resolution", (float)reflectionSize);
 		for (unsigned int i = 0; i < 6; ++i)
 		{
 			prefilterConvShader->setMat4("u_View", m_captureView[i]);

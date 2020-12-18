@@ -19,7 +19,6 @@ class Shader;
 
 class Model
 {
-	//friend class Texture;
 public:
 	glm::mat4 m_modelMatrix;
 	Model(const char *_path);

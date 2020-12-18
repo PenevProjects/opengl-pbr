@@ -25,8 +25,8 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return nom / denom;
 }
 // ----------------------------------------------------------------------------
-// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-// efficient VanDerCorpus calculation.
+// Sourced from: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// Efficient VanDerCorpus calculation(by reversing bits...Magic!)
 float RadicalInverse_VdC(uint bits) 
 {
      bits = (bits << 16u) | (bits >> 16u);
@@ -37,17 +37,20 @@ float RadicalInverse_VdC(uint bits)
      return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 // ----------------------------------------------------------------------------
+// Quasi-Monte Carlo method
 vec2 Hammersley(uint i, uint N)
 {
 	return vec2(float(i)/float(N), RadicalInverse_VdC(i));
 }
+
 // ----------------------------------------------------------------------------
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+//Importance sampling: Generates a sample vector that's biased towards the preferred alignment direction N
+vec3 ImportanceSampleGGX(vec2 _Xi, vec3 _N, float _roughness)
 {
-	float a = roughness*roughness;
+	float a = _roughness * _roughness;
 	
-	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
+	float phi = 2.0 * PI * _Xi.x;
+	float cosTheta = sqrt((1.0 - _Xi.y) / (1.0 + (a*a - 1.0) * _Xi.y));
 	float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
 	
 	// from spherical coordinates to cartesian coordinates - halfway vector
@@ -57,14 +60,14 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	H.z = cosTheta;
 	
 	// from tangent-space H vector to world-space sample vector
-	vec3 up          = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-	vec3 tangentX   = normalize(cross(up, N));
-	vec3 tangentY = cross(N, tangentX);
+	vec3 up          = abs(_N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 tangentX   = normalize(cross(up, _N));
+	vec3 tangentY = cross(_N, tangentX);
 	
-	return normalize(tangentX * H.x + tangentY * H.y + N * H.z);
+	return normalize(tangentX * H.x + tangentY * H.y + _N * H.z);
 }
 // ----------------------------------------------------------------------------
-// Do this for 5 different resolutions!
+// Doing this for 5 different resolutions!
 void main()
 {		
     vec3 N = normalize(WorldPos);
@@ -73,7 +76,7 @@ void main()
     vec3 R = N;
     vec3 V = R;
 
-    const uint num_samples = 256u;
+    const uint num_samples = 1024u;
     vec3 prefilteredColor = vec3(0.0);
     float totalWeight = 0.0;
     

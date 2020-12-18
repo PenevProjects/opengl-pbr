@@ -23,15 +23,20 @@
 
 int main(int argc, char *argv[])
 {
-
-
-	char answer;
-	bool carFlag = false;
-	std::cout << "Would you like to render a car model? Loads slow but it showcases the beauty of PBR!\n (Y/y | N/n): ";
-	std::cin >> answer;
-	if (answer == 'y' || answer == 'Y')
+	//initial menu
+	int skyboxChoice = 0;
+	while (!(skyboxChoice == 1 || skyboxChoice == 2 || skyboxChoice == 3))
 	{
-		carFlag = true;
+		std::cout << "select skybox: [1 | 2 | 3]: ";
+		std::cin >> skyboxChoice;
+	}
+	bool renderCar = false;
+	char carSelection;
+	std::cout << "render car model?: [y | n]: ";
+	std::cin >> carSelection;
+	if (carSelection == 'y' || carSelection == 'Y')
+	{
+		renderCar = true;
 	}
 
 	// Global SDL state
@@ -51,7 +56,7 @@ int main(int argc, char *argv[])
 		SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
 	// Lock in mouse
-	SDL_SetRelativeMouseMode(SDL_TRUE);
+	//SDL_SetRelativeMouseMode(SDL_TRUE);
 	if (!SDL_GL_CreateContext(window))
 	{
 		throw std::exception();
@@ -76,28 +81,39 @@ int main(int argc, char *argv[])
 
 
 
-	std::unique_ptr<Shader> stdShader = std::make_unique<Shader>("../src/shaders/blinn-lighting.vert", "../src/shaders/blinn-lighting.frag");
-	std::unique_ptr<Shader> normalsShader = std::make_unique<Shader>("../src/shaders/normals-tangent.vert", "../src/shaders/normals-tangent.frag");
-	std::unique_ptr<Shader> basicColorShader = std::make_unique<Shader>("../src/shaders/basic-color.vert", "../src/shaders/basic-color.frag");
 	std::unique_ptr<Shader> lampShader = std::make_unique<Shader>("../src/shaders/pure-white.vert", "../src/shaders/pure-white.frag");
-	std::unique_ptr<Shader> framebufShader = std::make_unique<Shader>("../src/shaders/framebuf-quad.vert", "../src/shaders/glowing-edges.frag");
 	std::unique_ptr<Shader> skyboxShader = std::make_unique<Shader>("../src/shaders/skybox.vert", "../src/shaders/skybox.frag");
 	std::unique_ptr<Shader> pbrShader = std::make_unique<Shader>("../src/shaders/pbr.vert", "../src/shaders/pbr.frag");
 
 
 	//Max number of texture units that can be used concurrently from a model file is currently 9. 
 	unsigned int skyboxSamplerID = 10;
-	//skybox params: file, skybox size, reflection size, samplerid
-	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/night4k.hdr", 2048);
+
+	//skybox - this also constructs maps for irradiance, prefilter and brdfLUT
+	std::shared_ptr<Skybox> skybox;
+	if (skyboxChoice == 1)
+	{
+		skybox = std::make_shared<Skybox>("../assets/hdr/night4k.hdr", 2048);
+	}
+	else if (skyboxChoice == 2)
+	{
+		skybox = std::make_shared<Skybox>("../assets/hdr/Road_to_MonumentValley_Ref.hdr", 2048);
+	}
+	else
+	{
+		skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048);
+	}
+	//OTHER SKYBOXES
+	//std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Road_to_MonumentValley_Ref.hdr", 2048);
+	//std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048);
 
 
-	//car - DONT FORGET DRAW CALL eyecandy, but loads slow
+	//car - DONT FORGET DRAW CALL in main game loop.
 	std::shared_ptr<Model> car;
-	if (carFlag)
+	if (renderCar)
 	{
 		car = std::make_shared<Model>("../assets/car/car.fbx");
 		car->m_modelMatrix = glm::translate(car->m_modelMatrix, glm::vec3(0.0f, -10.0f, 0.0f));
-
 	}
 
 	//tv pbr
@@ -105,11 +121,6 @@ int main(int argc, char *argv[])
 	tv->m_modelMatrix = glm::scale(tv->m_modelMatrix, glm::vec3(0.3f));	
 	tv->m_modelMatrix = glm::rotate(tv->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	tv->m_modelMatrix = glm::translate(tv->m_modelMatrix, glm::vec3(-40.0f, 0.0f, -10.0f));
-
-	//sword pbr
-	std::shared_ptr<Model> sword = std::make_shared<Model>("../assets/sword/sword.fbx");
-	sword->m_modelMatrix = glm::scale(sword->m_modelMatrix, glm::vec3(10.0f));
-	sword->m_modelMatrix = glm::rotate(sword->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	//mask pbr
 	std::shared_ptr<Model> oniMask = std::make_shared<Model>("../assets/oni/onito.fbx");
@@ -121,30 +132,35 @@ int main(int argc, char *argv[])
 
 
 	glm::vec3 lightPos[] {
-		glm::vec3{ 0.0f, 1.0f, 20.0f},
+		glm::vec3{ 0.0f, 1.0f, 15.0f},
 		glm::vec3{ 25.0f, 3.0f, 10.0f},
 		glm::vec3{-25.0f, 3.0f, 10.0f},
 	};
 	glm::vec3 lightColors[] {
-		glm::vec3{200.0f, 200.0f, 200.0f},
-		glm::vec3{50.0f, 50.0f, 50.0f},
-		glm::vec3{50.0f, 50.0f, 50.0f},
+		glm::vec3{300.0f, 300.0f, 300.0f},
+		glm::vec3{100.0f, 100.0f, 100.0f},
+		glm::vec3{100.0f, 100.0f, 100.0f},
 	};
 
+	//lamp 0
+	std::shared_ptr<Model> lamp0 = std::make_shared<Model>("../../assets/cube.obj");
 
-	std::shared_ptr<Model> lamp0 = std::make_shared<Model>("../assets/cube.obj");
-	std::shared_ptr<Model> lamp1 = std::make_shared<Model>("../assets/cube.obj");
+	//lamp 1 - static
+	std::shared_ptr<Model> lamp1 = std::make_shared<Model>("../../assets/cube.obj");
 	lamp1->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[1]);
 	lamp1->m_modelMatrix = glm::scale(lamp1->m_modelMatrix, glm::vec3(0.2f, 0.2f, 0.2f));
-	std::shared_ptr<Model> lamp2 = std::make_shared<Model>("../assets/cube.obj");
+
+	//lamp 2 - static
+	std::shared_ptr<Model> lamp2 = std::make_shared<Model>("../../assets/cube.obj");
 	lamp2->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[2]);
 	lamp2->m_modelMatrix = glm::scale(lamp2->m_modelMatrix, glm::vec3{0.2f, 0.2f, 0.2f});
 
+
+	//camera
 	std::shared_ptr<Camera> cam1 = std::make_shared<Camera>(glm::vec3{ 0.0f, 0.0f, 15.0 });
 
 	bool quit = false;
 	float translation{ 0.0f };
-	double lastTime{ 0.0 };
 
 
 	pbrShader->Use();
@@ -187,26 +203,37 @@ int main(int argc, char *argv[])
 			}
 			else if (e.type == SDL_KEYDOWN)
 			{
+				//locking the cursor on F click
 				if (e.key.keysym.sym == SDLK_f)
 				{
-					//locking the cursor
 					if ((bool)SDL_GetRelativeMouseMode())
 						SDL_SetRelativeMouseMode(SDL_FALSE);
 					else
 						SDL_SetRelativeMouseMode(SDL_TRUE);
 				}
 			}
+			else if (e.type == SDL_MOUSEBUTTONDOWN)
+			{
+				//locking the cursor on mouse click
+				if ((bool)SDL_GetRelativeMouseMode())
+					SDL_SetRelativeMouseMode(SDL_FALSE);
+				else
+					SDL_SetRelativeMouseMode(SDL_TRUE);
+			}
 			else if (e.type == SDL_MOUSEMOTION)
 			{
+				//process mouse input
 				float deltaX = static_cast<float>(e.motion.xrel);
 				float deltaY = static_cast<float>(-e.motion.yrel);
 				cam1->ProcessMouseInput(deltaX, deltaY);
 			}
 
 		}
+		//time calculations
 		Time::Update();
 		Time::DisplayFPSinWindowTitle(window);
-		//window resizing calculationg
+
+		//window resizing calculation
 		int width = 0;
 		int height = 0;
 		SDL_GetWindowSize(window, &width, &height);
@@ -241,26 +268,23 @@ int main(int argc, char *argv[])
 		glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 3);
 		glBindTexture(GL_TEXTURE_2D, skybox->GetBrdfLUT().lock()->m_id);
 
-
-
-		if (carFlag)
+		//UNCOMMENT FOR CAR
+		if (renderCar)
 		{
 			car->RenderMeshes(*pbrShader);
 		}
 
-		sword->RenderMeshes(*pbrShader);
 		tv->RenderMeshes(*pbrShader);
 		oniMask->RenderMeshes(*pbrShader);
 
 		pbrShader->StopUsing();
 
 		lampShader->Use();
-
+		//main lamp translation
 		float speed = 0.001f;
 		float range = 10.0f;
 		translation = glm::sin(SDL_GetTicks()*speed)*range; //oscillate
 		lightPos[0].x = translation;
-
 
 		lampShader->setViewAndProjectionMatrix(*cam1, true);
 		lamp0->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[0]);

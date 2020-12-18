@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(glShadows)
+project(glPBR)
 
 if(MSVC)
   add_definitions(/MP)
@@ -19,7 +19,7 @@ link_directories(
 
 add_definitions(-DSDL_MAIN_HANDLED)
 
-add_executable(glShadows
+add_executable(glPBR
 	src/main.cpp
 	src/Camera.h
 	src/Camera.cpp
@@ -39,25 +39,25 @@ add_executable(glShadows
 	src/Skybox.cpp
 )
 
-target_link_libraries(glShadows
+target_link_libraries(glPBR
     SDL2 glew32 opengl32 assimp-vc141-mtd
 )
 
-#[[add_custom_command(TARGET glShadows POST_BUILD
+add_custom_command(TARGET glPBR POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_SOURCE_DIR}/contrib/msvc15-windows-x86/bin/SDL2.dll"
-      "$<TARGET_FILE_DIR:glShadows>"
+      "$<TARGET_FILE_DIR:glPBR>"
 )
-add_custom_command(TARGET glShadows POST_BUILD
+add_custom_command(TARGET glPBR POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_SOURCE_DIR}/contrib/msvc15-windows-x86/bin/assimp-vc141-mtd.dll"
-      "$<TARGET_FILE_DIR:glShadows>"
+      "$<TARGET_FILE_DIR:glPBR>"
 )
 
-add_custom_command(TARGET glShadows POST_BUILD
+add_custom_command(TARGET glPBR POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_SOURCE_DIR}/contrib/msvc15-windows-x86/bin/glew32.dll"
-      "$<TARGET_FILE_DIR:glShadows>"
-)]]
+      "$<TARGET_FILE_DIR:glPBR>"
+)
 
 

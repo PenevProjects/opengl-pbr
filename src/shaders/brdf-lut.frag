@@ -4,8 +4,8 @@ in vec2 TexCoords;
 
 const float PI = 3.14159265359;
 // ----------------------------------------------------------------------------
-// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-// efficient VanDerCorpus calculation.
+// Sourced from: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// Efficient VanDerCorpus calculation(by reversing bits...Magic!)
 float RadicalInverse_VdC(uint bits) 
 {
      bits = (bits << 16u) | (bits >> 16u);
@@ -16,17 +16,19 @@ float RadicalInverse_VdC(uint bits)
      return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 // ----------------------------------------------------------------------------
+// Quasi-Monte Carlo method
 vec2 Hammersley(uint i, uint N)
 {
 	return vec2(float(i)/float(N), RadicalInverse_VdC(i));
 }
 // ----------------------------------------------------------------------------
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+//Importance sampling: Generates a sample vector that's biased towards the preferred alignment direction N
+vec3 ImportanceSampleGGX(vec2 _Xi, vec3 _N, float _roughness)
 {
-	float a = roughness*roughness;
+	float a = _roughness  *_roughness;
 	
-	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
+	float phi = 2.0 * PI * _Xi.x;
+	float cosTheta = sqrt((1.0 - _Xi.y) / (1.0 + (a*a - 1.0) * _Xi.y));
 	float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
 	
 	// from spherical coordinates to cartesian coordinates - halfway vector
@@ -36,55 +38,54 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	H.z = cosTheta;
 	
 	// from tangent-space H vector to world-space sample vector
-	vec3 up          = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-	vec3 tangent   = normalize(cross(up, N));
-	vec3 bitangent = cross(N, tangent);
+	vec3 up          = abs(_N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 tangentX   = normalize(cross(up, _N));
+	vec3 tangentY = cross(_N, tangentX);
 	
-	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
-	return normalize(sampleVec);
+	return normalize(tangentX * H.x + tangentY * H.y + _N * H.z);
 }
 // ----------------------------------------------------------------------------
-float GeometrySchlickGGX(float NdotV, float roughness)
+//Geometry function: approximates the relative surface area where micro surface details overshadow each other
+float GeometrySchlickGGX(float _NdotV, float _roughness)
 {
-    // note that we use a different k for IBL
-    float a = roughness;
+    // note that it's different k for IBL
+    float a = _roughness;
     float k = (a * a) / 2.0;
 
-    float nom   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-
-    return nom / denom;
+    return _NdotV / (_NdotV * (1.0 - k) + k);
 }
 // ----------------------------------------------------------------------------
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+//Geometry sum function: To account for both Viewing vector(geometry obstruction) and Light vector(geometry shadowing)
+float GeometrySmith(vec3 _N, vec3 _V, vec3 _L, float _roughness)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    float NdotV = max(dot(_N, _V), 0.0);
+    float NdotL = max(dot(_N, _L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, _roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, _roughness);
 
     return ggx1 * ggx2;
 }
 // ----------------------------------------------------------------------------
-vec2 IntegrateBRDF(float NdotV, float roughness)
+//Make BRDF of specular reflection a Look-Up Texture
+vec2 IntegrateBRDF(float _NdotV, float _roughness)
 {
     vec3 V;
-    V.x = sqrt(1.0 - NdotV*NdotV);
+    V.x = sqrt(1.0 - _NdotV*_NdotV);
     V.y = 0.0;
-    V.z = NdotV;
+    V.z = _NdotV;
 
     float A = 0.0;
     float B = 0.0; 
 
     vec3 N = vec3(0.0, 0.0, 1.0);
     
-    const uint sampleCount = 1024u;
-    for(uint i = 0u; i < sampleCount; ++i)
+    const uint num_samples = 1024u;
+    for(uint i = 0u; i < num_samples; ++i)
     {
         // generates a sample vector that's biased towards the
         // preferred alignment direction (importance sampling).
-        vec2 Xi = Hammersley(i, sampleCount);
-        vec3 H = ImportanceSampleGGX(Xi, N, roughness);
+        vec2 Xi = Hammersley(i, num_samples);
+        vec3 H = ImportanceSampleGGX(Xi, N, _roughness);
         vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
         float NdotL = max(L.z, 0.0);
@@ -93,16 +94,16 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
         if(NdotL > 0.0)
         {
-            float G = GeometrySmith(N, V, L, roughness);
-            float G_Vis = (G * VdotH) / (NdotH * NdotV);
+            float G = GeometrySmith(N, V, L, _roughness);
+            float G_Vis = (G * VdotH) / (NdotH * _NdotV);
             float Fc = pow(1.0 - VdotH, 5.0);
 
             A += (1.0 - Fc) * G_Vis;
             B += Fc * G_Vis;
         }
     }
-    A /= float(sampleCount);
-    B /= float(sampleCount);
+    A /= float(num_samples);
+    B /= float(num_samples);
     return vec2(A, B);
 }
 // ----------------------------------------------------------------------------

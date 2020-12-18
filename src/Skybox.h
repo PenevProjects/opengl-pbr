@@ -17,8 +17,7 @@ public:
 	/**\brief Creates an environment skybox from an HDR equirectangular image.
 	*
 	* @param _pathToHDR Path to .hdr file.
-	* @param _width Specified width of render texture for the cubemap dimensions.
-	* @param _height Specified height of render texture for the cubemap dimensions.
+	* @param _size Specified width and height of render texture for the cubemap dimensions.
 	*/
 	Skybox(std::string _pathToHDR, unsigned int _size);
 	~Skybox();

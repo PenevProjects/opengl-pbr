@@ -14,7 +14,7 @@
 
 
 /**
-* \brief Contains graphics matrices.
+* \brief Camera class which handles camera movement and generates view and projection matrices
 *
 * Stores values for position and orientation of camera.
 * Speed and sensitivity of camera are also configurable as public properties(unnecessary to write getters and setters - safe variables).
