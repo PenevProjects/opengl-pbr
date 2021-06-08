@@ -1,3 +1,6 @@
+## to run ##
+Download a release version and run the .exe.
+
 ## to rebuild ##
 1. Install `cmake > 3.10`
 2. Open command terminal in root directory
