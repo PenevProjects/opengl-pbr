@@ -23,21 +23,6 @@
 
 int main(int argc, char *argv[])
 {
-	//initial menu
-	int skyboxChoice = 0;
-	while (!(skyboxChoice == 1 || skyboxChoice == 2 || skyboxChoice == 3))
-	{
-		std::cout << "select skybox: [1 | 2 | 3]: ";
-		std::cin >> skyboxChoice;
-	}
-	bool renderCar = false;
-	char carSelection;
-	std::cout << "render car model?: [y | n]: ";
-	std::cin >> carSelection;
-	if (carSelection == 'y' || carSelection == 'Y')
-	{
-		renderCar = true;
-	}
 
 	// Global SDL state
 	// -------------------------------
@@ -90,42 +75,16 @@ int main(int argc, char *argv[])
 	unsigned int skyboxSamplerID = 10;
 
 	//skybox - this also constructs maps for irradiance, prefilter and brdfLUT
-	std::shared_ptr<Skybox> skybox;
-	if (skyboxChoice == 1)
-	{
-		skybox = std::make_shared<Skybox>("../assets/hdr/night4k.hdr", 2048);
-	}
-	else if (skyboxChoice == 2)
-	{
-		skybox = std::make_shared<Skybox>("../assets/hdr/Road_to_MonumentValley_Ref.hdr", 2048);
-	}
-	else
-	{
-		skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048);
-	}
+	std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/map.hdr", 2048);
 	//OTHER SKYBOXES
 	//std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Road_to_MonumentValley_Ref.hdr", 2048);
 	//std::shared_ptr<Skybox> skybox = std::make_shared<Skybox>("../assets/hdr/Factory_Catwalk_2k.hdr", 2048);
-
-
-	//car - DONT FORGET DRAW CALL in main game loop.
-	std::shared_ptr<Model> car;
-	if (renderCar)
-	{
-		car = std::make_shared<Model>("../assets/car/car.fbx");
-		car->m_modelMatrix = glm::translate(car->m_modelMatrix, glm::vec3(0.0f, -10.0f, 0.0f));
-	}
 
 	//tv pbr
 	std::shared_ptr<Model> tv = std::make_shared<Model>("../assets/tv/tv.fbx");
 	tv->m_modelMatrix = glm::scale(tv->m_modelMatrix, glm::vec3(0.3f));	
 	tv->m_modelMatrix = glm::rotate(tv->m_modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	tv->m_modelMatrix = glm::translate(tv->m_modelMatrix, glm::vec3(-40.0f, 0.0f, -10.0f));
-
-	//mask pbr
-	std::shared_ptr<Model> oniMask = std::make_shared<Model>("../assets/oni/onito.fbx");
-	oniMask->m_modelMatrix = glm::scale(oniMask->m_modelMatrix, glm::vec3(1.0f));
-	oniMask->m_modelMatrix = glm::translate(oniMask->m_modelMatrix, glm::vec3(15.0f, -5.0f, 0.0f));
 
 
 
@@ -143,15 +102,15 @@ int main(int argc, char *argv[])
 	};
 
 	//lamp 0
-	std::shared_ptr<Model> lamp0 = std::make_shared<Model>("../../assets/cube.obj");
+	std::shared_ptr<Model> lamp0 = std::make_shared<Model>("../../assets/cube/cube.obj");
 
 	//lamp 1 - static
-	std::shared_ptr<Model> lamp1 = std::make_shared<Model>("../../assets/cube.obj");
+	std::shared_ptr<Model> lamp1 = std::make_shared<Model>("../../assets/cube/cube.obj");
 	lamp1->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[1]);
 	lamp1->m_modelMatrix = glm::scale(lamp1->m_modelMatrix, glm::vec3(0.2f, 0.2f, 0.2f));
 
 	//lamp 2 - static
-	std::shared_ptr<Model> lamp2 = std::make_shared<Model>("../../assets/cube.obj");
+	std::shared_ptr<Model> lamp2 = std::make_shared<Model>("../../assets/cube/cube.obj");
 	lamp2->m_modelMatrix = glm::translate(glm::mat4{ 1.0f }, lightPos[2]);
 	lamp2->m_modelMatrix = glm::scale(lamp2->m_modelMatrix, glm::vec3{0.2f, 0.2f, 0.2f});
 
@@ -268,14 +227,8 @@ int main(int argc, char *argv[])
 		glActiveTexture(GL_TEXTURE0 + skyboxSamplerID + 3);
 		glBindTexture(GL_TEXTURE_2D, skybox->GetBrdfLUT().lock()->m_id);
 
-		//UNCOMMENT FOR CAR
-		if (renderCar)
-		{
-			car->RenderMeshes(*pbrShader);
-		}
 
 		tv->RenderMeshes(*pbrShader);
-		oniMask->RenderMeshes(*pbrShader);
 
 		pbrShader->StopUsing();
 
